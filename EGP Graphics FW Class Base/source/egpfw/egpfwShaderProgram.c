@@ -3,12 +3,7 @@
 #include "egpfw/egpfw/egpfwShaderProgram.h"
 
 
-// OpenGL
-#ifdef _WIN32
 #include "GL/glew.h"
-#else	// !_WIN32
-#include <OpenGL/gl3.h>
-#endif	// _WIN32
 
 
 #define _CRT_SECURE_NO_WARNINGS
