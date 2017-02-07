@@ -11,7 +11,7 @@
 ////		write your name beside "modified by" above!
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
+//shader highlighting http://www.horsedrawngames.com/shader-syntax-highlighting/
 #include "egpfwDemo.h"
 
 //-----------------------------------------------------------------------------
@@ -892,7 +892,8 @@ void renderGameState()
 
 		// draw shaded earth
 		{
-			currentProgramIndex = phongProgramIndex;
+			//currentProgramIndex = phongProgramIndex;
+			currentProgramIndex = testTextureProgramIndex;
 			currentProgram = glslPrograms + currentProgramIndex;
 			currentUniformSet = glslCommonUniforms[currentProgramIndex];
 			egpActivateProgram(currentProgram);
