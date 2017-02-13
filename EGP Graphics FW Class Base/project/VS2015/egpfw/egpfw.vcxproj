@@ -26,6 +26,7 @@
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwVertexBuffer.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\Matrix3.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\Vector3.h" />
+    <ClInclude Include="Quaternion.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfw\egpfwOBJLoader.c" />
@@ -34,6 +35,7 @@
     <ClCompile Include="..\..\..\source\egpfw\egpfwVertexBuffer.c" />
     <ClCompile Include="..\..\..\source\egpfw\Matrix3.c" />
     <ClCompile Include="..\..\..\source\egpfw\Vector3.c" />
+    <ClCompile Include="Quaternion.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FBCB5A67-EAA2-4A81-BF9C-6454ED41ECB7}</ProjectGuid>
