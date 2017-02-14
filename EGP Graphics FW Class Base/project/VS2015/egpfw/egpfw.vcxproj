@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\egpfw\egpfw.h" />
+    <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwFrameBuffer.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwOBJLoader.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwPrimitiveDataSimple.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwShaderProgram.h" />
@@ -29,6 +30,7 @@
     <ClInclude Include="Quaternion.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\source\egpfw\egpfwFrameBuffer.c" />
     <ClCompile Include="..\..\..\source\egpfw\egpfwOBJLoader.c" />
     <ClCompile Include="..\..\..\source\egpfw\egpfwPrimitiveDataSimple.c" />
     <ClCompile Include="..\..\..\source\egpfw\egpfwShaderProgram.c" />
