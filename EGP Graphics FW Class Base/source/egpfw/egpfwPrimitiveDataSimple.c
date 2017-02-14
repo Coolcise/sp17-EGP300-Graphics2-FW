@@ -201,69 +201,69 @@ const float fwDiscPositions[discNumVertices * 3] = {
 	0.65f, -0.65f, 0.0f,
 };
 
-#define discIndexCount 24
-const int fwDiscIndeces[discIndexCount] = {
-	0
-};
-const float fwDiscColors[discNumVertices * 3] = {
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-
-};
-const float fwDiscTexcoords[discNumVertices * 2] = {
-	0.0f, 0.0f,
-	0.0f, 0.0f,
-	0.0f, 0.0f,
-	0.0f, 0.0f,
-	0.0f, 0.0f,
-	0.0f, 0.0f,
-	0.0f, 0.0f,
-	0.0f, 0.0f,
-	0.0f, 0.0f,
-	0.0f, 0.0f
-};
+//#define discIndexCount 24
+//const int fwDiscIndeces[discIndexCount] = {
+//	0
+//};
+//const float fwDiscColors[discNumVertices * 3] = {
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//	1.0f, 0.0f, 0.0f,
+//
+//};
+//const float fwDiscTexcoords[discNumVertices * 2] = {
+//	0.0f, 0.0f,
+//	0.0f, 0.0f,
+//	0.0f, 0.0f,
+//	0.0f, 0.0f,
+//	0.0f, 0.0f,
+//	0.0f, 0.0f,
+//	0.0f, 0.0f,
+//	0.0f, 0.0f,
+//	0.0f, 0.0f,
+//	0.0f, 0.0f
+//};
 
 
 //-----------------------------------------------------------------------------
 
 // get data for quad that can be colored or textured
-const float *egpfwGetDiscPositions()
-{
-	// this function is complete!
-	return fwDiscPositions;
-}
-
-const float *egpfwGetDiscIndexes()
-{
-	// this function is complete!
-	return fwDiscPositions;
-}
-
-const float *egpfwGetDiscColors()
-{
-	// this function is complete!
-	return fwDiscColors;
-}
-
-const float *egpfwGetDiscTexcoords()
-{
-	// this function is complete!
-	return fwDiscTexcoords;
-}
-
-unsigned int egpfwGetDiscVertexCount()
-{
-	// this function is complete!
-	return discNumVertices;
-}
+//const float *egpfwGetDiscPositions()
+//{
+//	// this function is complete!
+//	return fwDiscPositions;
+//}
+//
+//const float *egpfwGetDiscIndexes()
+//{
+//	// this function is complete!
+//	return fwDiscPositions;
+//}
+//
+//const float *egpfwGetDiscColors()
+//{
+//	// this function is complete!
+//	return fwDiscColors;
+//}
+//
+//const float *egpfwGetDiscTexcoords()
+//{
+//	// this function is complete!
+//	return fwDiscTexcoords;
+//}
+//
+//unsigned int egpfwGetDiscVertexCount()
+//{
+//	// this function is complete!
+//	return discNumVertices;
+//}
 
 
 //-----------------------------------------------------------------------------
