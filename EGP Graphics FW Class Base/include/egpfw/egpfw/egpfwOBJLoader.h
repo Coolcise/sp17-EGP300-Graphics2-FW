@@ -52,7 +52,9 @@ extern "C"
 	{
 		unsigned int attribOffset[16];
 		unsigned int dataSize;
+		unsigned int numFaces;
 		void *data;
+		int* faces;
 	};
 
 

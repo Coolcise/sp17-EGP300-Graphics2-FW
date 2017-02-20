@@ -53,11 +53,11 @@
     <ClCompile Include="..\..\..\source\egpfw\egpfwVertexBuffer.c">
       <Filter>Source Files\c</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\source\egpfw\egpfwOBJLoader.c">
-      <Filter>Source Files\c</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\source\egpfw\egpfwFrameBuffer.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\egpfw\egpfwOBJLoader.c">
+      <Filter>Source Files\c</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
