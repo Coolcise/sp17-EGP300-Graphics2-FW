@@ -117,7 +117,8 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 				num[currNumIndex++] = str[currStrIndex++];
 
 			float temp = strtof(num, NULL);
-			theData[currAttrIndex] = temp;
+			//Convert from 1 indexed to 0 indexed
+			theData[currAttrIndex] = temp - 1;
 
 			for (int j = 0; j < 10; j++)
 				num[j] = '\0';
