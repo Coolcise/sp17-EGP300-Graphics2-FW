@@ -37,12 +37,12 @@ const unsigned int egpfwInternalColorStorage[] = {
 
 // depth formats
 const unsigned int egpfwInternalDepthFormat[] = {
-	0, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32F, GL_DEPTH24_STENCIL8,
+	0, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, GL_DEPTH24_STENCIL8,
 };
 
 // depth storage type
 const unsigned int egpfwInternalDepthStorage[] = {
-	0, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT, GL_FLOAT, GL_UNSIGNED_INT
+	0, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT, GL_UNSIGNED_INT, GL_UNSIGNED_INT
 };
 
 
@@ -52,7 +52,69 @@ const unsigned int egpfwInternalDepthStorage[] = {
 egpFrameBufferObjectDescriptor egpfwCreateFBO(const unsigned int frameWidth, const unsigned int frameHeight, const unsigned int numColorTargets, const egpColorFormat colorFormat, const egpDepthFormat depthFormat, const egpWrapSmoothFormat wrapSmoothFormat)
 {
 	egpFrameBufferObjectDescriptor fbo = { 0 };
-	//...
+
+	unsigned int format, internalFormat, internalStorage, attachmentType;
+
+	glGenFramebuffers(1, &fbo.glhandle);
+	if (fbo.glhandle)
+	{
+		fbo.frameWidth = frameWidth;
+		fbo.frameHeight = frameHeight;
+		fbo.numColorTargets = numColorTargets;
+		fbo.depthFormat = depthFormat;
+		fbo.wrapSmoothFormat = wrapSmoothFormat;
+
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo.glhandle);
+
+		format = GL_RGBA;
+	}
+
+	internalFormat = egpfwInternalColorFormat[colorFormat];
+	internalStorage = egpfwInternalColorStorage[colorFormat];
+
+	glGenTextures(fbo.numColorTargets, fbo.colorTargetHandle);
+	for (unsigned int i = 0; i < fbo.numColorTargets; i++)
+	{
+		glBindTexture(GL_TEXTURE_2D, fbo.colorTargetHandle[i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, frameWidth, frameHeight, 0, format, internalStorage, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, fbo.colorTargetHandle[i], 0);
+	}
+
+	if (depthFormat != DEPTH_DISABLE)
+	{
+		fbo.hasDepthTarget = 1;
+		fbo.hasStencilTarget = (depthFormat == DEPTH_D24S8);
+		format = fbo.hasStencilTarget ? GL_DEPTH_STENCIL : GL_DEPTH_COMPONENT;
+
+		internalFormat = egpfwInternalDepthFormat[depthFormat];
+		internalStorage = egpfwInternalDepthStorage[depthFormat];
+		attachmentType = fbo.hasStencilTarget ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT;
+
+		glGenTextures(1, &fbo.depthTargetHandle[0]);
+		glBindTexture(GL_TEXTURE_2D, fbo.depthTargetHandle[0]);
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, frameWidth, frameHeight, 0, format, internalStorage, 0);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, GL_TEXTURE_2D, fbo.depthTargetHandle[0], 0);
+	}
+
+	if (!glCheckFramebufferStatus(GL_FRAMEBUFFER))
+	{
+		printf("FBO creation failed!");
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
 	return fbo;
 }
 
@@ -61,6 +123,33 @@ egpFrameBufferObjectDescriptor egpfwCreateFBO(const unsigned int frameWidth, con
 void egpfwActivateFBO(const egpFrameBufferObjectDescriptor *fbo)
 {
 	//...
+	if (!fbo || !fbo->glhandle)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo->glhandle);
+	if (fbo->numColorTargets)
+	{
+		glDrawBuffers(fbo->numColorTargets, egpfwTargetName);
+	}
+
+	if (fbo->hasDepthTarget)
+	{
+		glEnable(GL_DEPTH_TEST);
+		if (fbo->hasStencilTarget)
+		{
+			glEnable(GL_STENCIL_TEST);
+		}
+	}
+	else
+	{
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_STENCIL_TEST);
+	}
+
+	glViewport(0, 0, fbo->frameWidth, fbo->frameHeight);
 }
 
 
@@ -75,13 +164,22 @@ int egpfwReleaseFBO(egpFrameBufferObjectDescriptor *fbo)
 // ****
 int egpfwBindColorTargetTexture(const egpFrameBufferObjectDescriptor *fbo, const unsigned int glBinding, const unsigned int targetIndex)
 {
-	//...
+	if(fbo && fbo->numColorTargets && targetIndex < 16)
+	{
+		glActiveTexture(GL_TEXTURE0 + glBinding);
+		glBindTexture(GL_TEXTURE_2D, fbo->colorTargetHandle[targetIndex]);
+	}
 	return 0;
 }
 
 // ****
 int egpfwBindDepthTargetTexture(const egpFrameBufferObjectDescriptor *fbo, const unsigned int glBinding)
 {
-	//...
+	if(fbo && fbo->hasDepthTarget)
+	{
+		glActiveTexture(GL_TEXTURE0 + glBinding);
+		glBindTexture(GL_TEXTURE_2D, fbo->depthTargetHandle[0]);
+		return 1;
+	}
 	return 0;
 }

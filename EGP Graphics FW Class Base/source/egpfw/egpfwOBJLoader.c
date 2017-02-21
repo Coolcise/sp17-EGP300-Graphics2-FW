@@ -67,202 +67,202 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 {
 	egpTriOBJDescriptor obj = { 0 };
 
-	FILE *file = fopen(objPath, "r");
+	//FILE *file = fopen(objPath, "r");
 
-	if (file == NULL)
-		printf("\nCould not open file %s!\n", objPath);
+	//if (file == NULL)
+	//	printf("\nCould not open file %s!\n", objPath);
 
-	//Get file size
-	fseek(file, 0L, SEEK_END);
-	int fileSize = ftell(file);
-	rewind(file);
+	////Get file size
+	//fseek(file, 0L, SEEK_END);
+	//int fileSize = ftell(file);
+	//rewind(file);
 
-	float* theData = (float*)malloc(fileSize);
+	//float* theData = (float*)malloc(fileSize);
 
-	//Set start index for vertecies
-	obj.attribOffset[ATTRIB_POSITION] = 0;
+	////Set start index for vertecies
+	//obj.attribOffset[ATTRIB_POSITION] = 0;
 
-	int count = 0;
-	int currStrIndex;
-	int currAttrIndex = 0;
-	int currNumIndex = 0;
+	//int count = 0;
+	//int currStrIndex;
+	//int currAttrIndex = 0;
+	//int currNumIndex = 0;
 
-	char str[100] = { '\0' };
-	char num[10] = { '\0' };
+	//char str[100] = { '\0' };
+	//char num[10] = { '\0' };
 
-	//Read first line
-	if (fgets(str, 100, file) == NULL)
-		printf("Cound not read from OBJ file!\n");
+	////Read first line
+	//if (fgets(str, 100, file) == NULL)
+	//	printf("Cound not read from OBJ file!\n");
 
-	//Skip unwanted lines
-	while (!(str[0] == 'v' && str[1] == ' '))
-	{
-		if (fgets(str, 100, file) == NULL)
-		{
-			printf("Could not read from OBJ file");
-			break;
-		}
-	}
+	////Skip unwanted lines
+	//while (!(str[0] == 'v' && str[1] == ' '))
+	//{
+	//	if (fgets(str, 100, file) == NULL)
+	//	{
+	//		printf("Could not read from OBJ file");
+	//		break;
+	//	}
+	//}
 
-	//Read vertecies
-	while (str[0] == 'v' && str[1] == ' ')
-	{
-		//Skip the identifier ("v ")
-		currStrIndex = 2;
+	////Read vertecies
+	//while (str[0] == 'v' && str[1] == ' ')
+	//{
+	//	//Skip the identifier ("v ")
+	//	currStrIndex = 2;
 
-		//3 numbers per vertex
-		for (int i = 0; i < 3; i++)
-		{
-			while (str[currStrIndex] != ' ')
-				num[currNumIndex++] = str[currStrIndex++];
+	//	//3 numbers per vertex
+	//	for (int i = 0; i < 3; i++)
+	//	{
+	//		while (str[currStrIndex] != ' ')
+	//			num[currNumIndex++] = str[currStrIndex++];
 
-			float temp = strtof(num, NULL);
-			//Convert from 1 indexed to 0 indexed
-			theData[currAttrIndex] = temp - 1;
+	//		float temp = strtof(num, NULL);
+	//		//Convert from 1 indexed to 0 indexed
+	//		theData[currAttrIndex] = temp - 1;
 
-			for (int j = 0; j < 10; j++)
-				num[j] = '\0';
+	//		for (int j = 0; j < 10; j++)
+	//			num[j] = '\0';
 
-			currNumIndex = 0;
-			currStrIndex++;
-			count++;
-			currAttrIndex++;
-		}
+	//		currNumIndex = 0;
+	//		currStrIndex++;
+	//		count++;
+	//		currAttrIndex++;
+	//	}
 
-		if (fgets(str, 100, file) == NULL)
-		{
-			printf("Could not read from OBJ file");
-			break;
-		}
-	}
+	//	if (fgets(str, 100, file) == NULL)
+	//	{
+	//		printf("Could not read from OBJ file");
+	//		break;
+	//	}
+	//}
 
-	//Set start index for UVs
-	obj.attribOffset[ATTRIB_TEXCOORD] = currAttrIndex;
-	count = 0;
+	////Set start index for UVs
+	//obj.attribOffset[ATTRIB_TEXCOORD] = currAttrIndex;
+	//count = 0;
 
-	//Read UVs
-	while (str[0] == 'v' && str[1] == 't' && str[2] == ' ')
-	{
-		//Skip the identifier ("vt ")
-		currStrIndex = 3;
+	////Read UVs
+	//while (str[0] == 'v' && str[1] == 't' && str[2] == ' ')
+	//{
+	//	//Skip the identifier ("vt ")
+	//	currStrIndex = 3;
 
-		//2 numbers per UV
-		for (int i = 0; i < 2; i++)
-		{
-			//Parse line to get number
-			while (str[currStrIndex] != ' ')
-				num[currNumIndex++] = str[currStrIndex++];
+	//	//2 numbers per UV
+	//	for (int i = 0; i < 2; i++)
+	//	{
+	//		//Parse line to get number
+	//		while (str[currStrIndex] != ' ')
+	//			num[currNumIndex++] = str[currStrIndex++];
 
-			float temp = strtof(num, NULL);
-			theData[currAttrIndex] = temp;
+	//		float temp = strtof(num, NULL);
+	//		theData[currAttrIndex] = temp;
 
-			for (int j = 0; j < 10; j++)
-				num[j] = '\0';
+	//		for (int j = 0; j < 10; j++)
+	//			num[j] = '\0';
 
-			currNumIndex = 0;
-			currStrIndex++;
-			count++;
-			currAttrIndex++;
-		}
+	//		currNumIndex = 0;
+	//		currStrIndex++;
+	//		count++;
+	//		currAttrIndex++;
+	//	}
 
-		if (fgets(str, 100, file) == NULL)
-		{
-			printf("Could not read from OBJ file");
-			break;
-		}
-	}
+	//	if (fgets(str, 100, file) == NULL)
+	//	{
+	//		printf("Could not read from OBJ file");
+	//		break;
+	//	}
+	//}
 
-	//Set starting index for the normals
-	obj.attribOffset[ATTRIB_NORMAL] = currAttrIndex;
-	count = 0;
+	////Set starting index for the normals
+	//obj.attribOffset[ATTRIB_NORMAL] = currAttrIndex;
+	//count = 0;
 
-	//Read in normals
-	while (str[0] == 'v' && str[1] == 'n' && str[2] == ' ')
-	{
-		//Skip the identifier ("vn ")
-		currStrIndex = 3;
+	////Read in normals
+	//while (str[0] == 'v' && str[1] == 'n' && str[2] == ' ')
+	//{
+	//	//Skip the identifier ("vn ")
+	//	currStrIndex = 3;
 
-		//3 numbers per normal
-		for (int i = 0; i < 3; i++)
-		{
-			while (str[currStrIndex] != ' ')
-				num[currNumIndex++] = str[currStrIndex++];
+	//	//3 numbers per normal
+	//	for (int i = 0; i < 3; i++)
+	//	{
+	//		while (str[currStrIndex] != ' ')
+	//			num[currNumIndex++] = str[currStrIndex++];
 
-			float temp = strtof(num, NULL);
-			theData[currAttrIndex] = temp;
+	//		float temp = strtof(num, NULL);
+	//		theData[currAttrIndex] = temp;
 
-			for (int j = 0; j < 10; j++)
-				num[j] = '\0';
+	//		for (int j = 0; j < 10; j++)
+	//			num[j] = '\0';
 
-			currNumIndex = 0;
-			currStrIndex++;
-			count++;
-			currAttrIndex++;
-		}
+	//		currNumIndex = 0;
+	//		currStrIndex++;
+	//		count++;
+	//		currAttrIndex++;
+	//	}
 
 
-		if (fgets(str, 100, file) == NULL)
-			printf("Could not read from OBJ file");
-	}
+	//	if (fgets(str, 100, file) == NULL)
+	//		printf("Could not read from OBJ file");
+	//}
 
-	obj.dataSize = (count + obj.attribOffset[ATTRIB_NORMAL]) * sizeof(float);
+	//obj.dataSize = (count + obj.attribOffset[ATTRIB_NORMAL]) * sizeof(float);
 
-	obj.faces = (int*)malloc(fileSize);
+	//obj.faces = (int*)malloc(fileSize);
 
-	while (!(str[0] == 'f' && str[1] == ' '))
-	{
-		fgets(str, 100, file);
-		if (str == NULL)
-			printf("Could not read from OBJ file");
-	}
+	//while (!(str[0] == 'f' && str[1] == ' '))
+	//{
+	//	fgets(str, 100, file);
+	//	if (str == NULL)
+	//		printf("Could not read from OBJ file");
+	//}
 
-	//Reuse for face array
-	currAttrIndex = 0;
-	count = 0;
-	char* token;
+	////Reuse for face array
+	//currAttrIndex = 0;
+	//count = 0;
+	//char* token;
 
-	//Read in faces
-	while (str[0] == 'f' && str[1] == ' ' && !feof(file))
-	{
-		//Skip the identifier ("f ")
-		currStrIndex = 2;
+	////Read in faces
+	//while (str[0] == 'f' && str[1] == ' ' && !feof(file))
+	//{
+	//	//Skip the identifier ("f ")
+	//	currStrIndex = 2;
 
-		//3 sets of indeces
-		for (int i = 0; i < 3; i++)
-		{
-			while (str[currStrIndex] != ' ')
-				num[currNumIndex++] = str[currStrIndex++];
+	//	//3 sets of indeces
+	//	for (int i = 0; i < 3; i++)
+	//	{
+	//		while (str[currStrIndex] != ' ')
+	//			num[currNumIndex++] = str[currStrIndex++];
 
-			//Get ints divided by delimiter '/'
-			token = strtok(num, "/");
-			while (token)
-			{
-				int temp = atoi(token);
-				obj.faces[currAttrIndex++] = temp;
-				token = strtok(NULL, "/");
-			}
+	//		//Get ints divided by delimiter '/'
+	//		token = strtok(num, "/");
+	//		while (token)
+	//		{
+	//			int temp = atoi(token);
+	//			obj.faces[currAttrIndex++] = temp;
+	//			token = strtok(NULL, "/");
+	//		}
 
-			for (int j = 0; j < 10; j++)
-				num[j] = '\0';
+	//		for (int j = 0; j < 10; j++)
+	//			num[j] = '\0';
 
-			currNumIndex = 0;
-			currStrIndex++;
-		}
+	//		currNumIndex = 0;
+	//		currStrIndex++;
+	//	}
 
-		count++;
+	//	count++;
 
-		if (fgets(str, 100, file) == NULL)
-		{
-			printf("Could not read from OBJ file");
-			break;
-		}
-	}
+	//	if (fgets(str, 100, file) == NULL)
+	//	{
+	//		printf("Could not read from OBJ file");
+	//		break;
+	//	}
+	//}
 
-	obj.numFaces = count;
+	//obj.numFaces = count;
 
-	fclose(file);
+	//fclose(file);
 
-	obj.data = theData;
+	//obj.data = theData;
 	return obj;
 }
 
