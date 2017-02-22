@@ -12,10 +12,8 @@
 
 // ****
 // varyings
-in vertex
-{
-	vec2 texcoord;
-} data;
+in vec2 passTexcoord;
+
 
 // ****
 // uniforms: 
@@ -25,20 +23,16 @@ in vertex
 //		uniform <sampler type> <name>;
 uniform sampler2D tex_dm;
 
+
 // ****
 // target
 layout (location = 0) out vec4 fragColor;
+
 
 // shader function
 void main()
 {
 	// ****
 	// output: this example: sample texture, copy to target
-	fragColor = texture(tex_dm, data.texcoord);
-	float clrAvg = fragColor.r + fragColor.g + fragColor.b;
-	clrAvg = clrAvg / 3;
-	fragColor.r /= clrAvg;
-	fragColor.g /= clrAvg;
-	fragColor.b /= clrAvg;
-	//fragColor.a = .5f;
+	fragColor = texture(tex_dm, passTexcoord);
 }

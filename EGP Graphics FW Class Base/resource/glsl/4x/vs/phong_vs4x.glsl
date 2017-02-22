@@ -16,21 +16,24 @@ layout (location = 0) in vec4 position;
 layout (location = 2) in vec4 normal;
 layout (location = 8) in vec4 texcoord;
 
+
 // ****
 // uniforms
 uniform mat4 mvp;
 uniform vec4 lightPos;
 uniform vec4 eyePos;
 
+
 // ****
 // varyings
-out vertex
+out VertexData
 {
 	vec4 normal;
 	vec4 lightVec;
 	vec4 eyeVec;
-	vec2 texcoord;
-} data;
+	vec4 texcoord;
+} pass;
+
 
 // shader function
 void main()
@@ -38,10 +41,11 @@ void main()
 	// ****
 	// set clip position
 	gl_Position = mvp * position;
+
 	// ****
 	// pass data
-	data.normal = vec4(normal.xyz, 0.0);
-	data.lightVec = lightPos - position;
-	data.eyeVec = eyePos - position;
-	data.texcoord = texcoord.xy;
+	pass.normal = vec4(normal.xyz, 0.0);
+	pass.lightVec = lightPos - position;
+	pass.eyeVec = eyePos - position;
+	pass.texcoord = texcoord;
 }

@@ -15,16 +15,16 @@
 layout (location = 0) in vec4 position;
 layout (location = 8) in vec4 texcoord;
 
+
 // ****
 // uniforms
 uniform mat4 mvp;
 
+
 // ****
 // varyings
-out vertex
-{
-	vec2 texcoord;
-} data;
+out vec2 passTexcoord;
+
 
 // shader function
 void main()
@@ -32,7 +32,8 @@ void main()
 	// ****
 	// set proper clip position
 	gl_Position = mvp * position;
+
 	// ****
 	// pass data
-	data.texcoord = texcoord.xy;
+	passTexcoord = texcoord.xy;
 }

@@ -13,10 +13,9 @@
 // ****
 // attributes: data read in directly from a vertex in VBO
 // format for a single attribute: 
+//		layout (location = <attribute index>) in <type> <name>;
 layout (location = 0) in vec4 position;
 layout (location = 3) in vec4 color;
-layout (location = 2) in vec4 normal;
-layout (location = 8) in vec4 texcoord;
 
 
 // ****
@@ -28,7 +27,6 @@ layout (location = 8) in vec4 texcoord;
 uniform mat4 mvp;
 
 
-
 // ****
 // varyings: data passed to the next stage in the pipeline
 // in GLSL 4.x you can use structure format: 
@@ -37,10 +35,8 @@ uniform mat4 mvp;
 //		} <output name>;
 // ...or one-by-one (compatible with version 3.x): 
 //		out <type> <name>;		// <- do this for each one
-out vertex
-{
-	vec4 color;
-} data;
+out vec4 passColor;
+
 
 // shader entry point: function executes once per-vertex
 void main()
@@ -54,7 +50,5 @@ void main()
 	// ****
 	// optional step: pass data along to next stage in pipeline
 	// this example: copy inbound color attribute directly to outbound varying
-	//data.color = color;
-	data.color = texcoord;
-	//data.color = texcoord;
+	passColor = color;
 }
