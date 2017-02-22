@@ -87,17 +87,25 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 	int currAttrIndex = 0;
 	int currNumIndex = 0;
 
-	char str[100] = { '\0' };
-	char num[10] = { '\0' };
+	const int BUFFER_SIZE = 100;
+
+	char* str = (char*)calloc(BUFFER_SIZE, sizeof(char));;
+	char* num = (char*)calloc(BUFFER_SIZE, sizeof(char));
+
+	for (int i = 0; i < BUFFER_SIZE; i++)
+	{
+		str[i] = '\0';
+		num[i] = '\0';
+	}
 
 	//Read first line
-	if (fgets(str, 100, file) == NULL)
+	if (fgets(str, BUFFER_SIZE, file) == NULL)
 		printf("Cound not read from OBJ file!\n");
 
 	//Skip unwanted lines
 	while (!(str[0] == 'v' && str[1] == ' '))
 	{
-		if (fgets(str, 100, file) == NULL)
+		if (fgets(str, BUFFER_SIZE, file) == NULL)
 		{
 			printf("Could not read from OBJ file");
 			break;
@@ -120,7 +128,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 			//Convert from 1 indexed to 0 indexed
 			theData[currAttrIndex] = temp - 1;
 
-			for (int j = 0; j < 10; j++)
+			for (int j = 0; j < BUFFER_SIZE; j++)
 				num[j] = '\0';
 
 			currNumIndex = 0;
@@ -129,7 +137,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 			currAttrIndex++;
 		}
 
-		if (fgets(str, 100, file) == NULL)
+		if (fgets(str, BUFFER_SIZE, file) == NULL)
 		{
 			printf("Could not read from OBJ file");
 			break;
@@ -156,7 +164,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 			float temp = strtof(num, NULL);
 			theData[currAttrIndex] = temp;
 
-			for (int j = 0; j < 10; j++)
+			for (int j = 0; j < BUFFER_SIZE; j++)
 				num[j] = '\0';
 
 			currNumIndex = 0;
@@ -165,7 +173,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 			currAttrIndex++;
 		}
 
-		if (fgets(str, 100, file) == NULL)
+		if (fgets(str, BUFFER_SIZE, file) == NULL)
 		{
 			printf("Could not read from OBJ file");
 			break;
@@ -191,7 +199,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 			float temp = strtof(num, NULL);
 			theData[currAttrIndex] = temp;
 
-			for (int j = 0; j < 10; j++)
+			for (int j = 0; j < BUFFER_SIZE; j++)
 				num[j] = '\0';
 
 			currNumIndex = 0;
@@ -201,7 +209,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 		}
 
 
-		if (fgets(str, 100, file) == NULL)
+		if (fgets(str, BUFFER_SIZE, file) == NULL)
 			printf("Could not read from OBJ file");
 	}
 
@@ -211,7 +219,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 
 	while (!(str[0] == 'f' && str[1] == ' '))
 	{
-		fgets(str, 100, file);
+		fgets(str, BUFFER_SIZE, file);
 		if (str == NULL)
 			printf("Could not read from OBJ file");
 	}
@@ -242,7 +250,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 				token = strtok(NULL, "/");
 			}
 
-			for (int j = 0; j < 10; j++)
+			for (int j = 0; j < BUFFER_SIZE; j++)
 				num[j] = '\0';
 
 			currNumIndex = 0;
@@ -251,7 +259,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 
 		count++;
 
-		if (fgets(str, 100, file) == NULL)
+		if (fgets(str, BUFFER_SIZE, file) == NULL)
 		{
 			printf("Could not read from OBJ file");
 			break;
@@ -260,6 +268,8 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 
 	obj.numFaces = count;
 
+	free(num);
+	free(str);
 	fclose(file);
 
 	obj.data = theData;
