@@ -259,7 +259,8 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 
 		count++;
 
-		if (fgets(str, BUFFER_SIZE, file) == NULL)
+		fgets(str, BUFFER_SIZE, file);
+		if (str == NULL)
 		{
 			printf("Could not read from OBJ file");
 			break;
@@ -281,7 +282,67 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 // convert OBJ to VAO & VBO
 int egpfwCreateVAOFromOBJ(const egpTriOBJDescriptor *obj, egpVertexArrayObjectDescriptor *vao_out, egpVertexBufferObjectDescriptor *vbo_out)
 {
-	//...
+	//seperate out the data from the contiguous list for ease of use later when interleaving
+	float3* data_positions = (float3*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_POSITION] * sizeof(float)));
+	float3* data_normals = (float3*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_NORMAL] * sizeof(float)));
+	float2* data_texcoords = (float2*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_TEXCOORD] * sizeof(float)));
+
+	unsigned int vertexCount = obj->dataSize;
+
+	float3* posBuffer = malloc(sizeof(float3) * vertexCount);
+	float3* norBuffer = malloc(sizeof(float3) * vertexCount);
+	float2* texBuffer = malloc(sizeof(float2) * vertexCount);
+
+	//iterleave
+	int j = 0;
+	for (int i = 0; i < obj->numFaces * 3; i++)
+	{
+		//put the face's first vertex in
+		posBuffer[i] = data_positions[obj->faces[j]];
+		j++;
+		norBuffer[i] = data_normals[obj->faces[j]];
+		j++;
+		texBuffer[i] = data_texcoords[obj->faces[j]];
+		j++;
+		i++;
+
+		//put the face's second vertex in
+		posBuffer[i] = data_positions[obj->faces[j]];
+		j++;
+		norBuffer[i] = data_normals[obj->faces[j]];
+		j++;
+		texBuffer[i] = data_texcoords[obj->faces[j]];
+		j++;
+		i++;
+
+		//put the face's third vertex in
+		posBuffer[i] = data_positions[obj->faces[j]];
+		j++;
+		norBuffer[i] = data_normals[obj->faces[j]];
+		j++;
+		texBuffer[i] = data_texcoords[obj->faces[j]];
+		j++;
+	}
+
+	egpAttributeDescriptor positionAttribs = egpCreateAttributeDescriptor(ATTRIB_POSITION, ATTRIB_VEC3, posBuffer);
+	egpAttributeDescriptor normalAttribs = egpCreateAttributeDescriptor(ATTRIB_NORMAL, ATTRIB_VEC3, norBuffer);
+	egpAttributeDescriptor textureAttribs = egpCreateAttributeDescriptor(ATTRIB_TEXCOORD, ATTRIB_VEC2, texBuffer);
+
+
+	egpAttributeDescriptor attribs[3];
+	attribs[0] = positionAttribs;
+	attribs[1] = normalAttribs;
+	attribs[2] = textureAttribs;
+
+	*vbo_out = egpCreateVBOInterleaved(attribs, 3, vertexCount);
+	*vao_out = egpCreateVAO(PRIM_TRIANGLES, vbo_out, NULL);
+
+	//free memory
+	free(posBuffer);
+	free(norBuffer);
+	free(texBuffer);
+
+	return 0;
 	return 0;
 }
 
