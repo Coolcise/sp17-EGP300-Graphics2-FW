@@ -149,7 +149,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 	}
 
 	//Set start index for UVs
-	obj.attribOffset[ATTRIB_TEXCOORD] = currAttrIndex;
+	obj.attribOffset[ATTRIB_TEXCOORD] = currAttrIndex * sizeof(float);
 	count = 0;
 
 	//Read UVs
@@ -186,7 +186,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 	}
 
 	//Set starting index for the normals
-	obj.attribOffset[ATTRIB_NORMAL] = currAttrIndex;
+	obj.attribOffset[ATTRIB_NORMAL] = currAttrIndex * sizeof(float);
 	count = 0;
 
 	//Read in normals
@@ -297,15 +297,16 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 
 
 // ****
+//Brandon Cote wuz Here
 // convert OBJ to VAO & VBO
 int egpfwCreateVAOFromOBJ(const egpTriOBJDescriptor *obj, egpVertexArrayObjectDescriptor *vao_out, egpVertexBufferObjectDescriptor *vbo_out)
 {
 	//seperate out the data from the contiguous list for ease of use later when interleaving
-	float3* data_positions = (float3*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_POSITION] * sizeof(float)));
-	float3* data_normals = (float3*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_NORMAL] * sizeof(float)));
-	float2* data_texcoords = (float2*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_TEXCOORD] * sizeof(float)));
+	float3* data_positions = (float3*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_POSITION]));
+	float3* data_normals = (float3*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_NORMAL]));
+	float2* data_texcoords = (float2*)(BUFFER_OFFSET_BYTE(obj->data, obj->attribOffset[ATTRIB_TEXCOORD]));
 
-	unsigned int vertexCount = obj->dataSize;
+	unsigned int vertexCount = obj->numFaces * 3;
 
 	float3* posBuffer = malloc(sizeof(float3) * vertexCount);
 	float3* norBuffer = malloc(sizeof(float3) * vertexCount);
@@ -316,29 +317,29 @@ int egpfwCreateVAOFromOBJ(const egpTriOBJDescriptor *obj, egpVertexArrayObjectDe
 	for (int i = 0; i < obj->numFaces * 3; i++)
 	{
 		//put the face's first vertex in
-		posBuffer[i] = data_positions[obj->faces[j]];
+		posBuffer[i] = data_positions[obj->faces[j] - 1];
 		j++;
-		norBuffer[i] = data_normals[obj->faces[j]];
+		norBuffer[i] = data_normals[obj->faces[j] - 1];
 		j++;
-		texBuffer[i] = data_texcoords[obj->faces[j]];
+		texBuffer[i] = data_texcoords[obj->faces[j] - 1];
 		j++;
 		i++;
 
 		//put the face's second vertex in
-		posBuffer[i] = data_positions[obj->faces[j]];
+		posBuffer[i] = data_positions[obj->faces[j] - 1];
 		j++;
-		norBuffer[i] = data_normals[obj->faces[j]];
+		norBuffer[i] = data_normals[obj->faces[j] - 1];
 		j++;
-		texBuffer[i] = data_texcoords[obj->faces[j]];
+		texBuffer[i] = data_texcoords[obj->faces[j] - 1];
 		j++;
 		i++;
 
 		//put the face's third vertex in
-		posBuffer[i] = data_positions[obj->faces[j]];
+		posBuffer[i] = data_positions[obj->faces[j] - 1];
 		j++;
-		norBuffer[i] = data_normals[obj->faces[j]];
+		norBuffer[i] = data_normals[obj->faces[j] - 1];
 		j++;
-		texBuffer[i] = data_texcoords[obj->faces[j]];
+		texBuffer[i] = data_texcoords[obj->faces[j] - 1];
 		j++;
 	}
 
@@ -360,7 +361,6 @@ int egpfwCreateVAOFromOBJ(const egpTriOBJDescriptor *obj, egpVertexArrayObjectDe
 	free(norBuffer);
 	free(texBuffer);
 
-	return 0;
 	return 0;
 }
 
