@@ -86,7 +86,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 	int currStrIndex;
 	int currAttrIndex = 0;
 	int currNumIndex = 0;
-
+	int line = 0;		//used for debugging to keep track of the current line nu
 	const int BUFFER_SIZE = 100;
 
 	char* str = (char*)calloc(BUFFER_SIZE, sizeof(char));;
@@ -102,6 +102,8 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 	if (fgets(str, BUFFER_SIZE, file) == NULL)
 		printf("Cound not read from OBJ file!\n");
 
+	line++;
+
 	//Skip unwanted lines
 	while (!(str[0] == 'v' && str[1] == ' '))
 	{
@@ -110,6 +112,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 			printf("Could not read from OBJ file");
 			break;
 		}
+		line++;
 	}
 
 	//Read vertecies
@@ -142,6 +145,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 			printf("Could not read from OBJ file");
 			break;
 		}
+		line++;
 	}
 
 	//Set start index for UVs
@@ -178,6 +182,7 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 			printf("Could not read from OBJ file");
 			break;
 		}
+		line++;
 	}
 
 	//Set starting index for the normals
@@ -210,7 +215,12 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 
 
 		if (fgets(str, BUFFER_SIZE, file) == NULL)
+		{
 			printf("Could not read from OBJ file");
+			break;
+		}
+
+		line++;
 	}
 
 	obj.dataSize = (count + obj.attribOffset[ATTRIB_NORMAL]) * sizeof(float);
@@ -219,9 +229,13 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 
 	while (!(str[0] == 'f' && str[1] == ' '))
 	{
-		fgets(str, BUFFER_SIZE, file);
-		if (str == NULL)
+		if (fgets(str, BUFFER_SIZE, file) == NULL)
+		{
 			printf("Could not read from OBJ file");
+			break;
+		}
+
+		line++;
 	}
 
 	//Reuse for face array
@@ -259,12 +273,16 @@ egpTriOBJDescriptor egpfwLoadTriangleOBJ(const char *objPath, const egpMeshNorma
 
 		count++;
 
-		fgets(str, BUFFER_SIZE, file);
-		if (str == NULL)
+		
+		if (fgets(str, BUFFER_SIZE, file) == NULL && !feof(file))
 		{
 			printf("Could not read from OBJ file");
 			break;
 		}
+		if (feof(file))
+			break;
+
+		line++;
 	}
 
 	obj.numFaces = count;
