@@ -67,7 +67,9 @@ public:
 		currNode = nullptr;
 	}
 
-	unsigned int length() const { return mNumNodes; }
+	unsigned int size() const { return mNumNodes; }
+
+	bool
 
 	void push(T data)
 	{

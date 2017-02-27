@@ -25,6 +25,7 @@
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwPrimitiveDataSimple.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwShaderProgram.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwVertexBuffer.h" />
+    <ClInclude Include="..\..\..\include\egpfw\egpfw\Stack.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfw\egpfwFrameBuffer.c" />

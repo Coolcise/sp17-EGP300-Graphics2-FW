@@ -42,6 +42,9 @@
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwFrameBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\egpfw\egpfw\Stack.h">
+      <Filter>Header Files\egpfw</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfw\egpfwPrimitiveDataSimple.c">
