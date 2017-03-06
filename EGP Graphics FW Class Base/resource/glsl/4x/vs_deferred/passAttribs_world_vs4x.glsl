@@ -24,6 +24,7 @@ uniform mat4 viewprojMat;
 uniform mat4 atlasMat;
 uniform float normalScale;
 
+
 // ****
 // varyings
 out vertexdata
@@ -41,7 +42,8 @@ void main()
 	// set proper clip position
 	vec4 worldPos = modelMat * position;
 	pass.position_world = worldPos;
-	pass.normal_world = modelMat * vec4(normal.xyz * normalScale, 0.0);
+	pass.normal_world = modelMat * vec4(normal.xyz*normalScale, 0.0);
 	pass.texcoord_atlas = atlasMat * texcoord;
-	gl_Position = viewprojMat * worldPos;    
+	//pass.texcoord_atlas = texcoord;
+	gl_Position = viewprojMat * worldPos;
 }
