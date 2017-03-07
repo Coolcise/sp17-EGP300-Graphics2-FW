@@ -53,7 +53,7 @@ void main()
 	vec4 N = normalize(pass.normal);
 	vec4 L = normalize(pass.lightVec);
 	float kd = dot(N, L);
-	if(fragIsShadowed)
+	if(fragIsShadowed && pass.position_clip_alt.z > 0.0)
 	{
 		kd *= 0.2;
 	}

@@ -66,14 +66,6 @@ void main()
 	ks *= ks;
 	ks *= ks;
 
-	// ****
-	// output: phong
-//	fragColor = vec4(kd + ks) + AMBIENT;
-
-	// ****
-	// extra: apply textures as well
 	fragColor = (kd*diffuseColor + ks*specularColor)*lightColor*projectedTex + AMBIENT;
-	
 
-	//fragColor = vec4(1.0, 0.5, 0.0, 1.0);
 }
