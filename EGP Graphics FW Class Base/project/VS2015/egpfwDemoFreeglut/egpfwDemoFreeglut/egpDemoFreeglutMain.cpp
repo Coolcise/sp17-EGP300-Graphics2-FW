@@ -1,6 +1,7 @@
 // EGPFW Framework Demo - Freeglut main for Windows
 // By Dan Buckstein
 
+#include <iostream>
 #ifdef _WIN32
 //-----------------------------------------------------------------------------
 
@@ -13,7 +14,7 @@
 #include "GL/freeglut.h"
 
 #include <stdio.h>
-
+#include <egpfw/egpfw/Stack.h>
 
 //-----------------------------------------------------------------------------
 
@@ -87,6 +88,60 @@ void winClosePressed()
 // entry function
 int main(int argc, char **argv)
 {
+	Stack<int> stack;
+
+
+	std::cout << "\n\nPush (numbers displayed for refference)\n";
+	for (int i = 0; i < 150; i += 5)
+	{
+		stack.push(i);
+		std::cout << i << " ";
+	}
+
+	std::cout << "\n\nFind at index\n";
+
+	int num = stack.size();
+
+	for (int i = 0; i < num; i += 2)
+	{
+		std::cout << stack.findAtIndex(i) << " ";
+	}
+
+	std::cout << "\n\nFind at index out of bound (-5 and 500)\n";
+
+	std::cout << stack.findAtIndex(-5) << "\n";
+	std::cout << stack.findAtIndex(500);
+
+	std::cout << "\n\nFind not found (6543)\n";
+
+	std::cout << stack.find(6543);
+
+	std::cout << "\n\nFind data (return index)\n";
+
+	for (int i = 0; i < 150; i += 5)
+	{
+		std::cout << stack.find(i) << " ";
+	}
+
+	std::cout << "\n\nPop\n";
+
+	for (int i = 0; i < num; i++)
+	{
+		std::cout << stack.pop() << " ";
+	}
+
+	std::cout << "\n\nPop (stack empty):\n";
+	stack.pop();
+
+	system("pause");
+
+
+
+
+
+
+
+	return 0;
 	// initialize graphics library
 	if (initGLUT(argc, argv))
 	{

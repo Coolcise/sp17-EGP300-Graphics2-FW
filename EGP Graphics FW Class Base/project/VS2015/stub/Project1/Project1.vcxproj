@@ -18,6 +18,15 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\source\stub\main.c" />
+    <ClCompile Include="..\..\..\..\source\stub\Matrix3.c" />
+    <ClCompile Include="..\..\..\..\source\stub\Vector3.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\source\stub\Matrix3.h" />
+    <ClInclude Include="..\..\..\..\source\stub\Vector3.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B1ACF495-68F1-478B-89B2-B79A5B2D0645}</ProjectGuid>
     <RootNamespace>Project1</RootNamespace>
@@ -110,9 +119,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="stub.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

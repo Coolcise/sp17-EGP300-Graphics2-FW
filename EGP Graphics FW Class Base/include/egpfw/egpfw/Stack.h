@@ -18,11 +18,7 @@ public:
 		mpParent = parent;
 	}
 
-	~Node()
-	{
-		mpParent = nullptr;
-		mpChild = nullptr;
-	}
+	~Node(){}
 
 	const T& getData() { return mData; }
 	Node<T>* getParent() { return mpParent; }
@@ -64,22 +60,18 @@ public:
 		}
 
 		delete currNode;
-		currNode = nullptr;
 	}
 
 	unsigned int size() const { return mNumNodes; }
 
-	bool
+	bool empty() { return mNumNodes == 0; }
 
 	void push(T data)
 	{
 		Node<T>* node = new Node<T>(data, mpLast);
 
 		if (mpLast != nullptr)
-		{
 			mpLast->setChild(node);
-			node->setParent(mpLast);
-		}
 		else
 			mpFirst = node;
 
@@ -89,32 +81,45 @@ public:
 
 	T pop()
 	{
-		T data = mpLast->getData();
-		Node<T>* next = mpLast->getParent();
-		delete mpLast;
-
-		if (next != nullptr)
+		if (mpLast != nullptr)
 		{
-			next->setChild(nullptr);
-			mpLast = next;
+			T data = mpLast->getData();
+			Node<T>* next = mpLast->getParent();
+			delete mpLast;
+
+			if (next != nullptr)
+			{
+				next->setChild(nullptr);
+				mpLast = next;
+			}
+
+			mNumNodes--;
+
+			if (mNumNodes == 0)
+				mpFirst = mpLast = nullptr;
+			return data;
 		}
 
-		mNumNodes--;
-
-		if (mNumNodes == 0)
-			mpFirst = mpLast = nullptr; 
-
-		return data;
+		std::cout << "\n\nCannot pop! Stack is empty!\n\n";
+		return 0;
 	}
 
-	const T& findAtIndex(unsigned int index)
+	const T& findAtIndex(int index)
 	{
-		Node<T>* currNode = mpFirst;
+		if (index < mNumNodes && index > -1)
+		{
 
-		for (unsigned int i = 0; i < index; i++)
-			currNode = currNode->getChild();
+			Node<T>* currNode = mpFirst;
 
-		return currNode->getData();
+			for (unsigned int i = 0; i < index; i++)
+				currNode = currNode->getChild();
+
+			return currNode->getData();
+		}
+
+		std::cout << "\n\nIndex out of bounds!!\n\n";
+
+		return 0;
 	}
 
 	int find(const T& data)

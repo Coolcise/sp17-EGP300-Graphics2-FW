@@ -7,16 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "egpfwDemoFreeglut", "..\..\
 	ProjectSection(ProjectDependencies) = postProject
 		{FBCB5A67-EAA2-4A81-BF9C-6454ED41ECB7} = {FBCB5A67-EAA2-4A81-BF9C-6454ED41ECB7}
 	EndProjectSection
-	GlobalSection(HgVSProperties) = preSolution
-		SolutionIsControlled = True
-		SolutionBindings = <Solution Location In Database>
-	EndGlobalSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "egpfw", "..\..\egpfw\egpfw.vcxproj", "{FBCB5A67-EAA2-4A81-BF9C-6454ED41ECB7}"
-	GlobalSection(HgVSProperties) = preSolution
-		SolutionIsControlled = True
-		SolutionBindings = <Solution Location In Database>
-	EndGlobalSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,6 +53,14 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(HgVSProperties) = preSolution
+		SolutionIsControlled = True
+		SolutionBindings = <Solution Location In Database>
+	EndGlobalSection
+	GlobalSection(HgVSProperties) = preSolution
+		SolutionIsControlled = True
+		SolutionBindings = <Solution Location In Database>
 	EndGlobalSection
 	GlobalSection(HgVSProperties) = preSolution
 		SolutionIsControlled = True
