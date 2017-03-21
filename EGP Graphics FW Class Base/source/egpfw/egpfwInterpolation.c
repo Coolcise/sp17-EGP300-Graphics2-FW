@@ -1,5 +1,5 @@
 // By Dan Buckstein
-// Modified by: _______________________________________________________________
+// Modified by: David Horntvedt
 #include "egpfw/egpfw/egpfwInterpolation.h"
 
 
@@ -10,15 +10,13 @@
 // lerp and lerp inverse
 float egpfwLerp(const float v0, const float v1, const float param)
 {
-	//...
-	return 0.0f;
+	return (v0 + (v1 - v0) * param);
 }
 
 // ****
 float egpfwLerpInv(const float v0, const float v1, const float v)
 {
-	//...
-	return 0.0f;
+	return (1.0f /( (v1 - v0) * v));
 }
 
 
@@ -26,7 +24,22 @@ float egpfwLerpInv(const float v0, const float v1, const float v)
 // Catmull-Rom spline interpolation
 float egpfwCatmullRom(const float vPrev, const float v0, const float v1, const float vNext, const float param)
 {
-	//...
+	/*mat4 inVecs;
+	inVecs[0] = vPrev;
+	inVecs[1] = v0;
+	inVecs[2] = v1;
+	inVecs[3] = vNext;
+
+	mat4 kernel;
+	kernel[0] = vec4(0, 2, 0, 0);
+	kernel[1] = vec4(-1, 0, 1, 0);
+	kernel[2] = vec4(2, -5, 4, -1);
+	kernel[3] = vec4(-1, 3, -3, 1);
+
+
+	vec4 time = vec4(1, param, param*param, param*param*param);
+
+	return (0.5f * inVecs * kernel * time);*/
 	return 0.0f;
 }
 
@@ -50,22 +63,29 @@ float egpfwBezier0(const float v0, const float param)
 // ****
 float egpfwBezier1(const float v0, const float v1, const float param)
 {
-	//...
-	return 0.0f;
+	return egpfwLerp(v0, v1, param);
 }
 
 // ****
 float egpfwBezier2(const float v0, const float v1, const float v2, const float param)
 {
-	//...
-	return 0.0f;
+	float lerp0 = egpfwLerp(v0, v1, param);
+	float lerp1 = egpfwLerp(v1, v2, param);
+
+	return egpfwLerp(lerp0, lerp1, param);
 }
 
 // ****
 float egpfwBezier3(const float v0, const float v1, const float v2, const float v3, const float param)
 {
-	//...
-	return 0.0f;
+	float lerp0 = egpfwLerp(v0, v1, param);
+	float lerp1 = egpfwLerp(v1, v2, param);
+	float lerp2 = egpfwLerp(v2, v3, param);
+	
+	float lerp01 = egpfwLerp(lerp0, lerp1, param);
+	float lerp12 = egpfwLerp(lerp1, lerp2, param);
+
+	return egpfwLerp(lerp01, lerp12, param);
 }
 
 // ****
