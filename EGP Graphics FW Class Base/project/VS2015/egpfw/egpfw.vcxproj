@@ -25,11 +25,13 @@
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwPrimitiveDataSimple.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwShaderProgram.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwVertexBuffer.h" />
+    <ClInclude Include="..\..\..\include\egpfw\egpfw\NetworkOverlayGraph.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\RenderPass.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\RenderPassHelpers.h" />
     <ClInclude Include="..\..\..\include\egpfw\egpfw\RenderPath.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\include\egpfw\egpfw\NetworkOverlayGraph.cpp" />
     <ClCompile Include="..\..\..\source\egpfw\egpfwFrameBuffer.c" />
     <ClCompile Include="..\..\..\source\egpfw\egpfwOBJLoader.c" />
     <ClCompile Include="..\..\..\source\egpfw\egpfwPrimitiveDataSimple.c" />

@@ -51,6 +51,9 @@
     <ClInclude Include="..\..\..\include\egpfw\egpfw\RenderPass.h">
       <Filter>Header Files\egpfw</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\egpfw\egpfw\NetworkOverlayGraph.h">
+      <Filter>Header Files\egpfw</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfw\egpfwPrimitiveDataSimple.c">
@@ -72,6 +75,9 @@
       <Filter>Source Files\cpp</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\source\egpfw\RenderPath.cpp">
+      <Filter>Source Files\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\include\egpfw\egpfw\NetworkOverlayGraph.cpp">
       <Filter>Source Files\cpp</Filter>
     </ClCompile>
   </ItemGroup>

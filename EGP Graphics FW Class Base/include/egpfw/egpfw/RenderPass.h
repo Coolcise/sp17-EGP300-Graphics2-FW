@@ -16,7 +16,8 @@
 #include "egpfw\egpfw\utils\egpfwVertexBufferUtils.h"
 #include <stdlib.h>
 #include <GL/glew.h>
-#include "../project/VS2015/egpfwDemoFreeglut/RenderPassHelpers.h"
+//#include "../project/VS2015/egpfwDemoFreeglut/RenderPassHelpers.h"
+#include "RenderPassHelpers.h"
 
 const int MAX_FILE_INFO = 8;
 const int MAX_PROGRAMS = 16;
@@ -30,7 +31,7 @@ const int MAX_UNIFORMS = 8;
 class RenderPass
 {
 public:
-	egpFrameBufferObjectDescriptor *desiredBuffer;
+	egpFrameBufferObjectDescriptor* desiredBuffer;
 	egpVertexArrayObjectDescriptor* mVAO = nullptr;
 
 	int programIndex = 0;
