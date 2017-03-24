@@ -42,6 +42,15 @@
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwFrameBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\egpfw\egpfw\RenderPassHelpers.h">
+      <Filter>Header Files\egpfw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\egpfw\egpfw\RenderPath.h">
+      <Filter>Header Files\egpfw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\egpfw\egpfw\RenderPass.h">
+      <Filter>Header Files\egpfw</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfw\egpfwPrimitiveDataSimple.c">
@@ -58,6 +67,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\source\egpfw\egpfwOBJLoader.c">
       <Filter>Source Files\c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\egpfw\RenderPass.cpp">
+      <Filter>Source Files\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\egpfw\RenderPath.cpp">
+      <Filter>Source Files\cpp</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
