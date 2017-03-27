@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 
+#include "egpfw/egpfw/Quaternion.h"
 
 //-----------------------------------------------------------------------------
 
@@ -122,6 +123,7 @@ int main(int argc, char **argv)
 
 	//	printf("\n\n");
 	//	system("pause");
+	
 }
 
 
