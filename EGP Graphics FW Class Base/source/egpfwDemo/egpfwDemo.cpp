@@ -373,16 +373,16 @@ void setupGeometry()
 		// positions for pose 1: move the bottom-left corner forward
 		const float testMorphShapePosition1[numVertices * 3] = {
 			-1.0f, -1.0f, +1.0f,
-			+1.0f, -1.0f,  0.0f,
-			-1.0f, +1.0f,  0.0f,
-			+1.0f, +1.0f,  0.0f,
+			+1.0f, -1.0f, -1.0f,
+			-1.0f, +1.0f, -2.0f,
+			+1.0f, +1.0f, +2.0f,
 		};
 		// positions for pose 2: move the top-right corner backward
 		const float testMorphShapePosition2[numVertices * 3] = {
 			-1.0f, -1.0f,  0.0f,
 			+1.0f, -1.0f,  0.0f,
 			-1.0f, +1.0f,  0.0f,
-			+1.0f, +1.0f, -1.0f,
+			+1.0f, +1.0f,  0.0f,
 		};
 		// positions for pose 3: stretch the bottom-right and top-left corners
 		const float testMorphShapePosition3[numVertices * 3] = {

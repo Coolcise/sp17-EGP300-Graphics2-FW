@@ -48,9 +48,6 @@
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwKeyframeController.h">
       <Filter>Header Files\egpfw</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\egpfw\egpfw\Quaternion.h">
-      <Filter>Header Files\egpfw</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfw\egpfwPrimitiveDataSimple.c">
@@ -73,9 +70,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\source\egpfw\egpfwKeyframeController.c">
       <Filter>Source Files\c</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\source\egpfw\Quaternion.cpp">
-      <Filter>Source Files\cpp</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
