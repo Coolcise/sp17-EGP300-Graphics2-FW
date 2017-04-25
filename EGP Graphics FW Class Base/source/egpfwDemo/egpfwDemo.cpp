@@ -129,6 +129,7 @@ enum GLSLProgramIndex
 	testTexturePassthruProgramIndex, 
 
 	phongProgramIndex,
+	blinnPhongProgramIndex,
 
 //-----------------------------
 	GLSLProgramCount
@@ -559,6 +560,27 @@ void setupShaders()
 		egpReleaseFileContents(files + 1);
 	}
 
+	// lighting
+	{
+		currentProgramIndex = blinnPhongProgramIndex;
+		currentProgram = glslPrograms + currentProgramIndex;
+
+		files[0] = egpLoadFileContents("../../../../resource/glsl/4x/vs/blinn-phong_vs4x.glsl");
+		files[1] = egpLoadFileContents("../../../../resource/glsl/4x/fs/blinn-phong_fs4x.glsl");
+		shaders[0] = egpCreateShaderFromSource(EGP_SHADER_VERTEX, files[0].contents);
+		shaders[1] = egpCreateShaderFromSource(EGP_SHADER_FRAGMENT, files[1].contents);
+
+		*currentProgram = egpCreateProgram();
+		egpAttachShaderToProgram(currentProgram, shaders + 0);
+		egpAttachShaderToProgram(currentProgram, shaders + 1);
+		egpLinkProgram(currentProgram);
+		egpValidateProgram(currentProgram);
+
+		egpReleaseShader(shaders + 0);
+		egpReleaseShader(shaders + 1);
+		egpReleaseFileContents(files + 0);
+		egpReleaseFileContents(files + 1);
+	}
 
 	// configure all uniforms at once
 	for (currentProgramIndex = 0; currentProgramIndex < GLSLProgramCount; ++currentProgramIndex)
@@ -893,7 +915,8 @@ void renderGameState()
 		// draw shaded earth
 		{
 			//currentProgramIndex = phongProgramIndex;
-			currentProgramIndex = testTextureProgramIndex;
+			currentProgramIndex = blinnPhongProgramIndex;
+			//currentProgramIndex = testTextureProgramIndex;
 			currentProgram = glslPrograms + currentProgramIndex;
 			currentUniformSet = glslCommonUniforms[currentProgramIndex];
 			egpActivateProgram(currentProgram);

@@ -77,5 +77,11 @@
     <None Include="..\..\..\resource\glsl\4x\vs\passTexcoord_passthruPosition_vs4x.glsl">
       <Filter>Resource Files\glsl\4x\vs</Filter>
     </None>
+    <None Include="..\..\..\resource\glsl\4x\fs\blinn-phong_fs4x.glsl">
+      <Filter>Resource Files\glsl\4x\fs</Filter>
+    </None>
+    <None Include="..\..\..\resource\glsl\4x\vs\blinn-phong_vs4x.glsl">
+      <Filter>Resource Files\glsl\4x\vs</Filter>
+    </None>
   </ItemGroup>
 </Project>

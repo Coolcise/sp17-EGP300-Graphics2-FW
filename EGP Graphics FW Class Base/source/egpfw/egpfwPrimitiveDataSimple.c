@@ -215,8 +215,6 @@ const float fwDiscColors[discNumVertices * 3] = {
 	1.0f, 0.0f, 0.0f,
 	1.0f, 0.0f, 0.0f,
 	1.0f, 0.0f, 0.0f,
-	1.0f, 0.0f, 0.0f,
-
 };
 const float fwDiscTexcoords[discNumVertices * 2] = {
 	0.0f, 0.0f,
@@ -228,7 +226,6 @@ const float fwDiscTexcoords[discNumVertices * 2] = {
 	0.0f, 0.0f,
 	0.0f, 0.0f,
 	0.0f, 0.0f,
-	0.0f, 0.0f
 };
 
 
