@@ -3,7 +3,12 @@
 #include "egpfw/egpfw/egpfwPrimitiveDataSimple.h"
 
 
+// OpenGL
+#ifdef _WIN32
 #include "GL/glew.h"
+#else	// !_WIN32
+#include <OpenGL/gl.h>
+#endif	// _WIN32
 
 
 //------------------------------------------------------------------------------
@@ -55,32 +60,7 @@ void egpfwDrawAxesImmediate(const float *mvp, const int mvpLoc)
 void egpfwDrawColoredTriangleImmediate(const float *mvp, const int mvpLoc)
 {
 	glPushMatrix();
-	glLoadMatrixf(mvp);
-	
-	glUniformMatrix4fv(mvpLoc, 1, 0, mvp);
-
-	glBegin(GL_TRIANGLES);
-
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex3f(0.0f, 0.0f, 1.0f);
-	
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glVertex3f(0.0f, 1.0f, 0.0f);
-
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex3f(1.0f, 0.0f, 0.0f);
-	
-	/*glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex3f(1.0f, 0.0f, 0.0f);
-
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glVertex3f(0.0f, 1.0f, 0.0f);
-
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex3f(0.0f, 0.0f, 1.0f);*/
-
-	glEnd();
-
+	//...
 	glPopMatrix();
 }
 
@@ -92,26 +72,7 @@ void egpfwDrawColoredTriangleImmediate(const float *mvp, const int mvpLoc)
 void egpfwDrawColoredUnitQuadImmediate(const float *mvp, const int mvpLoc)
 {
 	glPushMatrix();
-	glLoadMatrixf(mvp);
-
-	glUniformMatrix4fv(mvpLoc, 1, 0, mvp);
-
-	glBegin(GL_TRIANGLE_STRIP);
-
-	glColor3f(1.0f, 1.0f, 0.0f);
-	glVertex3f(1.0f, 1.0f, 0.0f);
-
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glVertex3f(-1.0f, 1.0f, 0.0f);
-
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex3f(1.0f, -1.0f, 0.0f);
-
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(-1.0f, -1.0f, 0.0f);	
-
-	glEnd();
-
+	//...
 	glPopMatrix();
 }
 
@@ -131,30 +92,66 @@ void egpfwDrawTexturedUnitQuadImmediate(const float *mvp, const int mvpLoc)
 
 //-----------------------------------------------------------------------------
 
+
 // ****
 // raw quad data
 // data should be arranged as TRIANGLE STRIP: use at most 4 vertices!
 #define quadNumVertices 4
 const float fwUnitQuadPositions[quadNumVertices * 3] = {
-	-1.0f, -1.0f, 0.0f, 
-	 1.0f, -1.0f, 0.0f, 
-	-1.0f,  1.0f, 0.0f, 
-	 1.0f,  1.0f, 0.0f
+	//-1.0f, -1.0f, 0.0f,
+	//+1.0f, -1.0f, 0.0f,
+	//-1.0f, +1.0f, 0.0f,
+	//+1.0f, +1.0f, 0.0f,
+	0
 };
 const float fwUnitQuadColors[quadNumVertices * 3] = {
+	//0.0f, 0.0f, 0.0f,
+	//1.0f, 0.0f, 0.0f,
+	//0.0f, 1.0f, 0.0f,
+	//1.0f, 1.0f, 0.0f,
+	0
+};
+const float fwUnitQuadTexcoords[quadNumVertices * 2] = {
+	//0.0f, 0.0f,
+	//1.0f, 0.0f,
+	//0.0f, 1.0f,
+	//1.0f, 1.0f,
+	0
+};
+
+#define quadNumVertices 4
+const float fwUnitQuadPositions2[quadNumVertices * 3] = {
+	-1.0f, -1.0f, 0.0f,
+	+1.0f, -1.0f, 0.0f,
+	-1.0f, +1.0f, 0.0f,
+	+1.0f, +1.0f, 0.0f,
+};
+const float fwUnitQuadColors2[quadNumVertices * 3] = {
 	0.0f, 0.0f, 0.0f,
 	1.0f, 0.0f, 0.0f,
 	0.0f, 1.0f, 0.0f,
 	1.0f, 1.0f, 0.0f,
 };
-const float fwUnitQuadTexcoords[quadNumVertices * 2] = {
+const float fwUnitQuadTexcoords2[quadNumVertices * 2] = {
 	0.0f, 0.0f,
 	1.0f, 0.0f,
 	0.0f, 1.0f,
-	1.0f, 1.0f
+	1.0f, 1.0f,
 };
 
 
+const float* getUnitQuadPositions()
+{
+	return fwUnitQuadPositions2;
+}
+const float* getUnitQuadColors()
+{
+	return fwUnitQuadColors2;
+}
+const float* getUnitQuadTexcoords()
+{
+	return fwUnitQuadTexcoords2;
+}
 //-----------------------------------------------------------------------------
 
 // get data for quad that can be colored or textured
@@ -181,89 +178,6 @@ unsigned int egpfwGetUnitQuadVertexCount()
 	// this function is complete!
 	return quadNumVertices;
 }
-
-
-//-----------------------------------------------------------------------------
-
-// ****
-// raw disc data
-#define discNumVertices 9
-
-const float fwDiscPositions[discNumVertices * 3] = {
-	0.0f,  0.0f, 0.0f,
-	1.0f,  0.0f, 0.0f,
-	0.65f,  0.65f, 0.0f,
-	0.0f,  1.0f,  0.0f,
-	-0.65f,  0.65f, 0.0f,
-	-1.0f,  0.0f, 0.0f,
-	-0.65f,  -0.65f, 0.0f,
-	0.0f,  -1.0f, 0.0f,
-	0.65f, -0.65f, 0.0f,
-};
-
-//#define discIndexCount 24
-//const int fwDiscIndeces[discIndexCount] = {
-//	0
-//};
-//const float fwDiscColors[discNumVertices * 3] = {
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//	1.0f, 0.0f, 0.0f,
-//
-//};
-//const float fwDiscTexcoords[discNumVertices * 2] = {
-//	0.0f, 0.0f,
-//	0.0f, 0.0f,
-//	0.0f, 0.0f,
-//	0.0f, 0.0f,
-//	0.0f, 0.0f,
-//	0.0f, 0.0f,
-//	0.0f, 0.0f,
-//	0.0f, 0.0f,
-//	0.0f, 0.0f,
-//	0.0f, 0.0f
-//};
-
-
-//-----------------------------------------------------------------------------
-
-// get data for quad that can be colored or textured
-//const float *egpfwGetDiscPositions()
-//{
-//	// this function is complete!
-//	return fwDiscPositions;
-//}
-//
-//const float *egpfwGetDiscIndexes()
-//{
-//	// this function is complete!
-//	return fwDiscPositions;
-//}
-//
-//const float *egpfwGetDiscColors()
-//{
-//	// this function is complete!
-//	return fwDiscColors;
-//}
-//
-//const float *egpfwGetDiscTexcoords()
-//{
-//	// this function is complete!
-//	return fwDiscTexcoords;
-//}
-//
-//unsigned int egpfwGetDiscVertexCount()
-//{
-//	// this function is complete!
-//	return discNumVertices;
-//}
 
 
 //-----------------------------------------------------------------------------

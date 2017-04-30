@@ -36,8 +36,10 @@ extern "C"
 
 
 //-----------------------------------------------------------------------------
-
-
+	// Sometimes the best solutions are the jankiest
+	const float* getUnitQuadPositions();
+	const float* getUnitQuadColors();
+	const float* getUnitQuadTexcoords();
 	// get data for quad that can be colored or textured
 	// data should be arranged as TRIANGLE STRIP
 	// positions and colors have 3 elements each, texture coordinates have 2

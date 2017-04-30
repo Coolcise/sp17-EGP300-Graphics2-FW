@@ -4,7 +4,7 @@
 ////	By Dan Buckstein
 ////	January 2017
 ////
-////	****Modified by: DavidHorntvedt
+////	****Modified by: Charlie McGarey and David Horntvedt
 ////	^^^^
 ////	NOTE: 4 asterisks anywhere means something you will have to either 
 ////		modify or complete to get it working! Good practice for starters: 
@@ -39,10 +39,29 @@
 // framework includes
 
 #include "egpfw/egpfw.h"
+#include "KeyframeEditor.h"
+#include <iostream>
 
 
 //-----------------------------------------------------------------------------
 // globals
+enum ChannelType
+{
+	X,
+	Y,
+	Z,
+};
+
+enum ViewType
+{
+	KEYFRAME,
+	T_CURVE,
+	OBJECT
+};
+
+
+ViewType viewType = KEYFRAME;
+ChannelType currType;
 
 
 //-----------------------------------------------------------------------------
@@ -52,6 +71,10 @@ unsigned int win_x = 0;
 unsigned int win_y = 0;
 unsigned int win_w = 1280;
 unsigned int win_h = 720;
+#define WAYPOINTS_MAX 60
+KeyframeEditor kEdit = KeyframeEditor(win_w, win_h);
+float* waypointData;
+
 const unsigned int viewport_b = 0;
 const unsigned int viewport_tb = viewport_b + viewport_b;
 const int viewport_nb = -(int)viewport_b;
@@ -63,7 +86,7 @@ float maxClipDist = 0.0f, minClipDist = 0.0f;
 
 // update flag: play speed as a percentage
 unsigned int playing = 1;
-unsigned int playrate = 100;
+unsigned int playrate = 33;
 
 
 // timers
@@ -74,7 +97,7 @@ egpMouse mouse[1];
 egpKeyboard keybd[1];
 
 
-
+cbmath::mat4 curveDrawingProjectionMatrix;
 //-----------------------------------------------------------------------------
 // graphics-related data and handles
 // good practice: default values for everything
@@ -88,31 +111,22 @@ enum ModelIndex
 	axesModel,
 	fsqModel,
 	boxModel, sphere8x6Model, sphere32x24Model,
-
-	// skinning mesh & skeleton drawing bone model
-	skinningModel, 
-	boneModel, 
-
+	fsqModel2,
+	// morph targets
+	morphModel, 
+	pointModel,
 //-----------------------------
 	modelCount
 };
-enum IndexedModelIndex
-{
-	skinningIndexedModel, 
-	boneIndexedModel, 
-	
-//-----------------------------
-	indexedModelCount
-};
 egpVertexArrayObjectDescriptor vao[modelCount] = { 0 };
 egpVertexBufferObjectDescriptor vbo[modelCount] = { 0 };
-egpIndexBufferObjectDescriptor ibo[indexedModelCount] = { 0 };
 
 
 // loaded textures
 enum TextureIndex
 {
 	skyboxTexHandle,
+	proj3legendHandle,
 
 //-----------------------------
 	textureCount
@@ -129,10 +143,12 @@ enum GLSLProgramIndex
 	testTextureProgramIndex,
 	testTexturePassthruProgramIndex,
 
-	// skinning program
-	skinningProgram, 
-	drawBoneProgram, 
+	//texOnQuadProgramIndex,
 
+	// morph targets programs
+	morphTargetsProgram, 
+	morphTargetsDrawCurveProgram, 
+	drawCurveProgram,
 //-----------------------------
 	GLSLProgramCount
 };
@@ -142,11 +158,13 @@ enum GLSLCommonUniformIndex
 	unif_color, 
 	unif_dm,
 
-	// skinning & skeletal uniforms
-	unif_bones_skinning, 
-	unif_bones_world, 
-	unif_boneLengths, 
-
+	// morph target uniforms
+	unif_param, 
+	unif_index, 
+	unif_waypoint,
+	unif_waypointCount,
+	unif_paramX,
+	unif_curveType,
 //-----------------------------
 	GLSLCommonUniformCount
 };
@@ -155,10 +173,13 @@ const char *commonUniformName[] = {
 	(const char *)("color"),
 	(const char *)("tex_dm"),
 
-	// skeletal
-	(const char *)("bones_skinning"),
-	(const char *)("bones_world"),
-	(const char *)("boneLengths"),
+	// morph targets
+	(const char *)("param"),
+	(const char *)("index"),
+	(const char *)("waypoint"),
+	(const char *)("waypointCount"),
+	(const char *)("paramX"),
+	(const char *)("curveType"),
 };
 egpProgram glslPrograms[GLSLProgramCount] = { 0 }, *currentProgram = 0;
 int glslCommonUniforms[GLSLProgramCount][GLSLCommonUniformCount] = { -1 }, *currentUniformSet = 0;
@@ -170,7 +191,7 @@ enum FBOIndex
 {
 	// scene
 	sceneFBO, 
-
+	blackFBO,
 //-----------------------------
 	fboCount
 };
@@ -205,7 +226,7 @@ cbmath::vec4 cameraPos_world[numCameras] = {
 enum SceneObjects
 {
 	skyboxObject,
-	skinningObject, 
+	curveTargetObject, 
 //-----------------------------
 	sceneObjectCount,
 //-----------------------------
@@ -221,73 +242,11 @@ cbmath::mat4 viewProjectionMatrix[sceneObjectTotalCount];
 
 cbmath::mat4 boxModelViewProjectionMatrix;
 
-
-
-// simple skeletal animation
-#define BONES_MAX 64
-struct SimpleBone
-{
-	int parentBoneIndex;			// -1 for root
-	cbmath::mat4 transform_local;	// transformation relative to parent
-};
-struct SimpleSkeleton
-{
-	// assumes first bone is root
-	unsigned int boneCount;
-	SimpleBone bones[BONES_MAX];
-	float boneLength[BONES_MAX];
-	cbmath::mat4 transform_root[BONES_MAX];					// transformation relative to root/model
-	cbmath::mat4 transform_root_bind[BONES_MAX];			// root transform at bind time (base pose)
-	cbmath::mat4 transform_root_bind_inverse[BONES_MAX];	// bind pose inverse
-	cbmath::mat4 transform_bindToCurr[BONES_MAX];			// skinning matrix: transform from bind pose to current pose
-};
-
-SimpleSkeleton testSkeleton[1];
-float testSkeletonTime = 0.0f;
-
-
-// ****
-// forward kinematics update for all bones
-void updateSkeletonForwardKinematics(SimpleSkeleton *skel)
-{
-	unsigned int i;
-	
-	// update root joint: no parent, so copy local transform to root transform
-	skel->transform_root[0] = skel->bones[0].transform_local;
-
-	// local to root = parent's local to root * local to parent
-	for (i = 1; i < skel->boneCount; ++i)
-	{
-		skel->transform_root[i] = skel->transform_root[skel->bones[i].parentBoneIndex] * skel->bones[i].transform_local;
-	}
-}
-
-// ****
-// update skinning matrix for all bones
-void updateSkeletonSkinningMatrices(SimpleSkeleton *skel)
-{
-	unsigned int i;
-
-	// skinning matrix = local to root * inverse local to root bind
-	for (i = 0; i < skel->boneCount; ++i)
-	{
-		skel->transform_bindToCurr[i] = skel->transform_root[i] * skel->transform_root_bind_inverse[i];
-	}
-}
-
-// calculate bind pose
-void calculateSkeletonBindPose(SimpleSkeleton *skel)
-{
-	unsigned int i;
-
-	// do FK update, use resulting state as bind pose
-	updateSkeletonForwardKinematics(skel);
-	for (i = 0; i < skel->boneCount; ++i)
-	{
-		skel->transform_root_bind[i] = skel->transform_root[i];
-		skel->transform_root_bind_inverse[i] = cbmath::transformInverseNoScale(skel->transform_root_bind[i]);
-	}
-}
+// morph targets
+const int morphKeyframeCount = 4;
+int morphKeyframeIndex[morphKeyframeCount] = { 0, 1, 2, 3 };
+float objectInterpolationParam = 0.0f;
+float objectInterpolationParamRate = 1.0f;
 
 
 
@@ -343,10 +302,11 @@ int initGL()
 	glLineWidth(lineWidth);
 	glPointSize(pointSize);
 
+	waypointData = new float[WAYPOINTS_MAX * 4];
+
 	// done
 	return 1;
 }
-
 
 // initialize third-party image handling using DevIL
 int initIL()
@@ -427,208 +387,62 @@ void setupGeometry()
 	attribs[1] = egpCreateAttributeDescriptor(ATTRIB_TEXCOORD, ATTRIB_VEC2, egpfwGetUnitQuadTexcoords());
 	vao[fsqModel] = egpCreateVAOInterleaved(PRIM_TRIANGLE_STRIP, attribs, 2, 4, (vbo + fsqModel), 0);
 
+	attribs[0].data = getUnitQuadPositions();
+	attribs[1] = egpCreateAttributeDescriptor(ATTRIB_TEXCOORD, ATTRIB_VEC2, getUnitQuadTexcoords());
+	vao[fsqModel2] = egpCreateVAOInterleaved(PRIM_TRIANGLE_STRIP, attribs, 2, 4, (vbo + fsqModel2), 0);
 
-	// ****
-	// skeletal: skinning object is just a tessellated tube
-	// skeleton will be drawn using a geometry shader again, single point converted into lines
+
+	attribs[0].data = cbmath::v3zero.v;
+	vao[pointModel] = egpCreateVAOInterleaved(PRIM_POINT, attribs, 1, 1, (vbo + pointModel), 0);
+
+	// morphing: test shape will just be a quad with 4 built-in keyframe poses
 	{
-		// skinning mesh: just make a flat thingimagig for simplicity's sake
-		{
-			// raw mesh positions - unskinned ("bind pose")
-			const unsigned int numSkinningVertices = 16;
-			const float skinningVertices[numSkinningVertices * 3] = {
-				// right pillar
-				+0.5f,  0.0f,  0.0f, 
-				+0.5f, +1.0f,  0.0f,
-				+0.5f, +2.0f,  0.0f,
-				+0.5f, +3.0f,  0.0f,
+		// we will have 4 positions; if you want normals you need to add more
+		const unsigned int totalAttribs = morphKeyframeCount;
+		const unsigned int numVertices = 4;
 
-				// back pillar
-				 0.0f,  0.0f, -0.5f,
-				 0.0f, +1.0f, -0.5f,
-				 0.0f, +2.0f, -0.5f,
-				 0.0f, +3.0f, -0.5f,
+		// ****
+		// positions for pose 0: default quad
+		const float testMorphShapePosition0[numVertices * 3] = {
+			-1.7f, -1.5f, -0.3f, 
+			+1.3f, -2.1f,  1.1f, 
+			-1.5f, +1.5f,  0.4f, 
+			+1.3f, +1.6f, -1.0f, 
+		};
+		// positions for pose 1: move the bottom-left corner forward
+		const float testMorphShapePosition1[numVertices * 3] = {
+			-0.1f, -1.9f, -1.0f,
+			+1.5f, -1.5f,  0.3f,
+			-0.2f, +1.0f,  1.0f,
+			+1.5f, +1.5f, -0.4f,
+		};
+		// positions for pose 2: move the top-right corner backward
+		const float testMorphShapePosition2[numVertices * 3] = {
+			-1.5f, -2.3f, -0.4f,
+			+1.0f, -1.0f,  0.7f,
+			-0.9f, +1.5f,  0.0f,
+			+1.0f, +2.2f,  0.2f,
+		};
+		// positions for pose 3: stretch the bottom-right and top-left corners
+		const float testMorphShapePosition3[numVertices * 3] = {
+			-1.0f, -1.0f, -0.9f,
+			+2.0f, -2.0f,  1.4f,
+			-1.8f, +1.7f, -1.0f,
+			+1.1f, +1.8f, -0.3f,
+		};
 
-				// left pillar
-				-0.5f,  0.0f,  0.0f,
-				-0.5f, +1.0f,  0.0f,
-				-0.5f, +2.0f,  0.0f,
-				-0.5f, +3.0f,  0.0f,
-
-				// front pillar
-				 0.0f,  0.0f, +0.5f,
-				 0.0f, +1.0f, +0.5f,
-				 0.0f, +2.0f, +0.5f,
-				 0.0f, +3.0f, +0.5f,
-			};
-
-			// raw mesh normals - unskinned
-			const float skinningNormals[numSkinningVertices * 3] = {
-				+1.0f,  0.0f,  0.0f,
-				+1.0f,  0.0f,  0.0f,
-				+1.0f,  0.0f,  0.0f,
-				+1.0f,  0.0f,  0.0f,
-
-				 0.0f,  0.0f, -1.0f,
-				 0.0f,  0.0f, -1.0f,
-				 0.0f,  0.0f, -1.0f,
-				 0.0f,  0.0f, -1.0f,
-				 
-				-1.0f,  0.0f,  0.0f,
-				-1.0f,  0.0f,  0.0f,
-				-1.0f,  0.0f,  0.0f,
-				-1.0f,  0.0f,  0.0f,
-
-				 0.0f,  0.0f, +1.0f,
-				 0.0f,  0.0f, +1.0f,
-				 0.0f,  0.0f, +1.0f,
-				 0.0f,  0.0f, +1.0f,
-			};
-
-			// skinning weights (w): max 4 per vertex - each set adds up to 1
-			const float skinningBlendWeights[numSkinningVertices * 4] = {
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-				1.00f, 0.00f, 0.00f, 0.00f,
-			};
-
-			// skinning INFLUENCE indices (i): max 4 per vertex
-			// corresponds to the bone that influences the vertex 
-			//	by a factor of w (weight)
-			// NOTE: they are only "floats" because that is the supported 
-			//	GLSL attribute data type, but they will be used as integers!
-			const float skinningBlendIndices[numSkinningVertices * 4] = {
-				0, 0, 0, 0, 
-				1, 0, 0, 0,
-				2, 0, 0, 0,
-				3, 0, 0, 0,
-
-				0, 0, 0, 0,
-				1, 0, 0, 0,
-				2, 0, 0, 0,
-				3, 0, 0, 0,
-
-				0, 0, 0, 0,
-				1, 0, 0, 0,
-				2, 0, 0, 0,
-				3, 0, 0, 0,
-
-				0, 0, 0, 0,
-				1, 0, 0, 0,
-				2, 0, 0, 0,
-				3, 0, 0, 0,
-			};
-
-			// indices for DRAWING a layered "tower-like" object: 
-			// these are for the IBO, nothing to do with skinning
-			// 3 verts per tri, 6 tris per facet * 4 facets, + 4 cap tris
-			const unsigned int numSkinningIndices = 3 * (6 * 4 + 4);
-			const unsigned int skinningIndices[numSkinningIndices] = {
-				0, 4, 5, 5, 1, 0, 
-				1, 5, 6, 6, 2, 1, 
-				2, 6, 7, 7, 3, 2,
-
-				4, 8, 9, 9, 5, 4,
-				5, 9, 10, 10, 6, 5,
-				6, 10, 11, 11, 7, 6,
-
-				8, 12, 13, 13, 9, 8,
-				9, 13, 14, 14, 10, 9,
-				10, 14, 15, 15, 11, 10,
-
-				12, 0, 1, 1, 13, 12,
-				13, 1, 2, 2, 14, 13,
-				14, 2, 3, 3, 15, 14,
-
-				0, 12, 8, 8, 4, 0, 
-				3, 7, 11, 11, 15, 3, 
-			};
-
-
-			// build object VAO & VBO
-			egpAttributeDescriptor attribs_skinning[] = {
-				egpCreateAttributeDescriptor(ATTRIB_POSITION, ATTRIB_VEC3, skinningVertices),
-				egpCreateAttributeDescriptor(ATTRIB_NORMAL, ATTRIB_VEC3, skinningNormals),
-				egpCreateAttributeDescriptor(ATTRIB_BLEND_WEIGHTS, ATTRIB_VEC4, skinningBlendWeights),
-				egpCreateAttributeDescriptor(ATTRIB_BLEND_INDICES, ATTRIB_VEC4, skinningBlendIndices),
-			};
-			vao[skinningModel] = egpCreateVAOInterleavedIndexed(PRIM_TRIANGLES, 
-				attribs_skinning, 4, numSkinningVertices, (vbo + skinningModel), 
-				INDEX_UINT, numSkinningIndices, skinningIndices, (ibo + skinningIndexedModel));
-		}
-
-		// bone
-		{
-			// custom bone primitive: pyramid shape pointing along Z
-			const float boneSz = 0.05f;
-			const unsigned int numBoneVertices = 5;
-			const float boneVertices[numBoneVertices * 3] = {
-				+boneSz, 0.0f, 0.0f, 
-				0.0f, +boneSz, 0.0f, 
-				-boneSz, 0.0f, 0.0f, 
-				0.0f, -boneSz, 0.0f, 
-				0.0f, 0.0f, 1.0f, 
-			};
-
-			// indexed rendering vertices
-			const unsigned int numBoneIndices = 10;
-			const unsigned int boneIndices[numBoneIndices] = {
-				0, 1, 2, 3, // base
-				0, 4, 1, 2, 4, 3, // point
-			};
-
-			// create bone object
-			egpAttributeDescriptor attribs_bone[] = {
-				egpCreateAttributeDescriptor(ATTRIB_POSITION, ATTRIB_VEC3, boneVertices),
-			};
-			vao[boneModel] = egpCreateVAOInterleavedIndexed(PRIM_LINE_STRIP,
-				attribs_bone, 1, numBoneVertices, (vbo + boneModel), 
-				INDEX_UINT, numBoneIndices, boneIndices, (ibo + boneIndexedModel));
-		}
-
-		// setup skeleton bone poses
-		{
-			unsigned int parentIndex;
-			testSkeleton->boneCount = 4;
-
-			// root: rotate -90 on X so that Z points upwards
-			testSkeleton->bones[0].parentBoneIndex = -1;
-			testSkeleton->bones[0].transform_local = cbmath::makeRotationX4(Deg2Rad(-90.0f));
-			testSkeleton->boneLength[0] = 1.0f;
-
-			// subsequent bones: just translate on Z by parent's bone length
-			//	and set new bone's length
-			testSkeleton->bones[1].parentBoneIndex = parentIndex = 0;	// child of root node
-			testSkeleton->bones[1].transform_local.m32 = testSkeleton->boneLength[parentIndex];
-			testSkeleton->boneLength[1] = 1.0f;
-
-			testSkeleton->bones[2].parentBoneIndex = parentIndex = 1;
-			testSkeleton->bones[2].transform_local.m32 = testSkeleton->boneLength[parentIndex];
-			testSkeleton->boneLength[2] = 1.0f;
-
-			testSkeleton->bones[3].parentBoneIndex = parentIndex = 2;
-			testSkeleton->bones[3].transform_local.m32 = testSkeleton->boneLength[parentIndex];
-			testSkeleton->boneLength[3] = 0.0f;	// end of chain
-
-			// set bind pose matrices
-			calculateSkeletonBindPose(testSkeleton);
-		}
+		// create morph target object: 
+		//	-> stuff all poses for position and other 
+		//		morphable attributes into a single VBO!
+		// demo case: let's just use the positions for now...
+		const egpAttributeDescriptor morphTargetModelAttribs[] = {
+			egpCreateAttributeDescriptor((egpAttributeName)0, ATTRIB_VEC3, testMorphShapePosition0),
+			egpCreateAttributeDescriptor((egpAttributeName)1, ATTRIB_VEC3, testMorphShapePosition1),
+			egpCreateAttributeDescriptor((egpAttributeName)2, ATTRIB_VEC3, testMorphShapePosition2),
+			egpCreateAttributeDescriptor((egpAttributeName)3, ATTRIB_VEC3, testMorphShapePosition3),
+		};
+		vao[morphModel] = egpCreateVAOInterleaved(PRIM_TRIANGLE_STRIP, 
+			morphTargetModelAttribs, totalAttribs, numVertices, (vbo + morphModel), 0);
 	}
 }
 
@@ -640,8 +454,6 @@ void deleteGeometry()
 		egpReleaseVAO(vao + i);
 		egpReleaseVBO(vbo + i);
 	}
-	for (i = 0; i < indexedModelCount; ++i)
-		egpReleaseIBO(ibo + i);
 }
 
 
@@ -658,6 +470,7 @@ void setupTextures()
 	// files
 	char *imgFiles[] = {
 		(char *)("../../../../resource/tex/bg/sky_clouds.png"),
+		(char *)("../../../../resource/tex/proj3/Proj3legend.png"),
 	};
 
 	// load
@@ -691,6 +504,13 @@ void setupTextures()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);		// texture repeats on horiz axis
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	// proj3 legend
+	glBindTexture(GL_TEXTURE_2D, tex[proj3legendHandle]);					// activate 2D texture
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	// texture gets small/large, smooth
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);		
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
 	// disable textures
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -742,12 +562,12 @@ void setupShaders()
 			egpReleaseFileContents(files + 0);
 		}
 
-		// draw skinning object
+		// draw morphing object
 		{
-			files[0] = egpLoadFileContents("../../../../resource/glsl/4x/vs_animation/skinning_passNormalAsColor_vs4x.glsl");
+			files[0] = egpLoadFileContents("../../../../resource/glsl/4x/vs_animation/morphing_vs4x.glsl");
 			shaders[0] = egpCreateShaderFromSource(EGP_SHADER_VERTEX, files[0].contents);
 
-			currentProgramIndex = skinningProgram;
+			currentProgramIndex = morphTargetsProgram;
 			currentProgram = glslPrograms + currentProgramIndex;
 			*currentProgram = egpCreateProgram();
 			egpAttachShaderToProgram(currentProgram, shaders + 0);
@@ -759,55 +579,75 @@ void setupShaders()
 			egpReleaseFileContents(files + 0);
 		}
 
-		// done with varying color fs
-		egpReleaseShader(shaders + 2);
-		egpReleaseFileContents(files + 2);
+		// draw morphing object curves
+		{
+			files[0] = egpLoadFileContents("../../../../resource/glsl/4x/vs_animation/morphing_passKeyframes_vs4x.glsl");
+			shaders[0] = egpCreateShaderFromSource(EGP_SHADER_VERTEX, files[0].contents);
+			files[1] = egpLoadFileContents("../../../../resource/glsl/4x/gs/drawCurve_morphing_gs4x.glsl");
+			shaders[1] = egpCreateShaderFromSource(EGP_SHADER_GEOMETRY, files[1].contents);
+
+			currentProgramIndex = morphTargetsDrawCurveProgram;
+			currentProgram = glslPrograms + currentProgramIndex;
+			*currentProgram = egpCreateProgram();
+			egpAttachShaderToProgram(currentProgram, shaders + 0);
+			egpAttachShaderToProgram(currentProgram, shaders + 1);
+			egpAttachShaderToProgram(currentProgram, shaders + 2);
+			egpLinkProgram(currentProgram);
+			egpValidateProgram(currentProgram);
+
+			egpReleaseShader(shaders + 0);
+			egpReleaseFileContents(files + 0);
+			egpReleaseShader(shaders + 1);
+			egpReleaseFileContents(files + 1);
+		}
+
+		
 
 
 		// draw solid color (uniform)
 		{
+			files[0] = egpLoadFileContents("../../../../resource/glsl/4x/vs/transform_vs4x.glsl");
+			shaders[0] = egpCreateShaderFromSource(EGP_SHADER_VERTEX, files[0].contents);
+
+
+			{
+				files[1] = egpLoadFileContents("../../../../resource/glsl/4x/gs/drawCurvep03.glsl");
+				shaders[1] = egpCreateShaderFromSource(EGP_SHADER_GEOMETRY, files[1].contents);
+
+				currentProgramIndex = drawCurveProgram;
+				currentProgram = glslPrograms + currentProgramIndex;
+				*currentProgram = egpCreateProgram();
+				egpAttachShaderToProgram(currentProgram, shaders + 0);
+				egpAttachShaderToProgram(currentProgram, shaders + 1);
+				egpAttachShaderToProgram(currentProgram, shaders + 2);
+				egpLinkProgram(currentProgram);
+				egpValidateProgram(currentProgram);
+
+				egpReleaseShader(shaders + 1);
+				egpReleaseFileContents(files + 1);
+			}
+
+
 			files[1] = egpLoadFileContents("../../../../resource/glsl/4x/fs/drawSolid_fs4x.glsl");
 			shaders[1] = egpCreateShaderFromSource(EGP_SHADER_FRAGMENT, files[1].contents);
 
-			// basic draw solid color
-			{
-				files[0] = egpLoadFileContents("../../../../resource/glsl/4x/vs/transform_vs4x.glsl");
-				shaders[0] = egpCreateShaderFromSource(EGP_SHADER_VERTEX, files[0].contents);
+			currentProgramIndex = testSolidColorProgramIndex;
+			currentProgram = glslPrograms + currentProgramIndex;
+			*currentProgram = egpCreateProgram();
+			egpAttachShaderToProgram(currentProgram, shaders + 0);
+			egpAttachShaderToProgram(currentProgram, shaders + 1);
+			egpLinkProgram(currentProgram);
+			egpValidateProgram(currentProgram);
 
-				currentProgramIndex = testSolidColorProgramIndex;
-				currentProgram = glslPrograms + currentProgramIndex;
-				*currentProgram = egpCreateProgram();
-				egpAttachShaderToProgram(currentProgram, shaders + 0);
-				egpAttachShaderToProgram(currentProgram, shaders + 1);
-				egpLinkProgram(currentProgram);
-				egpValidateProgram(currentProgram);
-
-				egpReleaseShader(shaders + 0);
-				egpReleaseFileContents(files + 0);
-			}
-
-			// bone with solid color
-			{
-				files[0] = egpLoadFileContents("../../../../resource/glsl/4x/vs_animation/drawBone_vs4x.glsl");
-				shaders[0] = egpCreateShaderFromSource(EGP_SHADER_VERTEX, files[0].contents);
-
-				currentProgramIndex = drawBoneProgram;
-				currentProgram = glslPrograms + currentProgramIndex;
-				*currentProgram = egpCreateProgram();
-				egpAttachShaderToProgram(currentProgram, shaders + 0);
-				egpAttachShaderToProgram(currentProgram, shaders + 1);
-				egpLinkProgram(currentProgram);
-				egpValidateProgram(currentProgram);
-
-				egpReleaseShader(shaders + 0);
-				egpReleaseFileContents(files + 0);
-			}
-
+			egpReleaseShader(shaders + 0);
+			egpReleaseFileContents(files + 0);
 			egpReleaseShader(shaders + 1);
 			egpReleaseFileContents(files + 1);
 		}
 	}
-
+	// done with varying color fs
+	egpReleaseShader(shaders + 2);
+	egpReleaseFileContents(files + 2);
 
 	// test texture program
 	// example of shared shader
@@ -1026,6 +866,8 @@ int termGame()
 	// delete geometry
 	deleteGeometry();
 
+	delete waypointData;
+
 	// done
 	return 1;
 }
@@ -1042,9 +884,19 @@ void displayControls()
 	printf("\n p = toggle play/pause for all");
 
 	printf("\n l = real-time reload all shaders");
-	printf("\n x = toggle coordinate axes post-draw");
+	printf("\n Right Click = place a rotation keyframe");
+	printf("\n Left Click = place a position keyframe");
+	printf("\n x, y, z = toggle between editing x, y, or z values");
 
-	printf("\n-------------------------------------------------------");
+	printf("\n c, i, b = switch betwen (c)atmull-Rom, (b)ezier, or l(i)ne strip modes");
+	printf("\n 1 = switch to keyframe editor");
+	printf("\n 2 = switch to object viewer");
+	printf("\n r = reset all keyframes");
+	
+	printf("\n d = draw a sheded circle in console");
+
+
+	printf("\n-------------------------------------------------------\n");
 }
 
 
@@ -1074,25 +926,86 @@ void handleInputState()
 
 	// toggle axes
 	if (egpKeyboardIsKeyPressed(keybd, 'x'))
-		testDrawAxes = 1 - testDrawAxes;
-
-
-/*
-	// toggle pipeline stage
-	if (egpKeyboardIsKeyPressed(keybd, '9'))
 	{
-		displayMode = displayScene;
-		displayColor = 1;
-		fboFinalDisplay = fbo + sceneFBO;
+		currType = X;
+		printf("Now Editing X values\n");
 	}
-	else if (egpKeyboardIsKeyPressed(keybd, '0'))
-	{
-		displayMode = displaySceneDepth;
-		displayColor = 0;
-		fboFinalDisplay = fbo + sceneFBO;
-	}
-*/
 
+	if (egpKeyboardIsKeyPressed(keybd, 'y'))
+	{
+		currType = Y;
+		printf("Now Editing Y values\n");
+	}
+
+	if (egpKeyboardIsKeyPressed(keybd, 'z'))
+	{
+		currType = Z;
+		printf("Now Editing Z values\n");
+	}
+
+	if (egpKeyboardIsKeyPressed(keybd, 'd'))
+	{
+		drawConsoleSphere();
+	}
+	
+	
+	if (egpKeyboardIsKeyPressed(keybd, 'c'))
+	{
+		printf("switching to Catmull-Rom\n");
+		kEdit.switchCurveType(CATMULL_ROM);
+	}
+
+	if (egpKeyboardIsKeyPressed(keybd, 'i'))
+	{
+		printf("switching to Line Strips\n");
+		kEdit.switchCurveType(LINE_STRIP);
+	}
+
+	if (egpKeyboardIsKeyPressed(keybd, 'b'))
+	{
+		printf("switching to Bezier\n");
+		kEdit.switchCurveType(BEZIER);
+	}
+
+	// Switching between the different editors
+	if (egpKeyboardIsKeyPressed(keybd, '1'))
+	{
+		printf("Switching to Keyframe Editor\n");
+		viewType = KEYFRAME;
+	}
+	else if (egpKeyboardIsKeyPressed(keybd, '2'))
+	{
+		printf("Switching to T Curve Editor\n");
+		viewType = T_CURVE;
+	}
+	else if (egpKeyboardIsKeyPressed(keybd, '3'))
+	{
+		printf("Switching to Object Viewer\n");
+		viewType = OBJECT;
+	}
+
+
+	// Add keyframes on mouse press
+	if (viewType == KEYFRAME && egpMouseIsButtonPressed(mouse, 0))
+	{
+		kEdit.addKeyframe(
+			static_cast<float>(egpMouseX(mouse)),
+			static_cast<float>(egpMouseY(mouse)),
+			static_cast<KeyType>(currType));
+	}
+	else if (viewType == KEYFRAME && egpMouseIsButtonPressed(mouse, 2))
+	{
+		kEdit.addKeyframe(
+			static_cast<float>(egpMouseX(mouse)),
+			static_cast<float>(egpMouseY(mouse)),
+			static_cast<KeyType>(3 + currType));
+	}
+
+	// Reset the keyframes
+	if (egpKeyboardIsKeyPressed(keybd, 'r'))
+	{
+		kEdit.reset();
+	}
 
 	// finish by updating input state
 	egpMouseUpdate(mouse);
@@ -1135,43 +1048,14 @@ void updateGameState(float dt)
 			// concatenate with proj to get mvp
 			boxModelViewProjectionMatrix = viewProjectionMatrix[controlCamera] * modelMatrix[skyboxObject];
 		}
-
-
-		// skeletal animation
+		if (playing > 0)
 		{
-			// procedural animation for debugging purposes: 
-			// just make the bones do some snake-like movement
-			unsigned int parentIndex;
-
-			// time step and value used for animation
-			float s;
-			testSkeletonTime += dt;
-			s = sinf(testSkeletonTime);
-
-			// root: make it sway about X
-			testSkeleton->bones[0].transform_local = cbmath::makeRotationX4(Deg2Rad(-90.0f) + s);
-
-			// make each bone sway about some local axis/axes
-			s *= 0.5f;
-			parentIndex = testSkeleton->bones[1].parentBoneIndex;
-			testSkeleton->bones[1].transform_local = cbmath::makeRotationEuler4XYZ(s, s, s);
-			testSkeleton->bones[1].transform_local.m32 = testSkeleton->boneLength[parentIndex];
-
-			s *= 0.5f;
-			parentIndex = testSkeleton->bones[2].parentBoneIndex;
-			testSkeleton->bones[2].transform_local = cbmath::makeRotationEuler4XYZ(s, s, s);
-			testSkeleton->bones[2].transform_local.m32 = testSkeleton->boneLength[parentIndex];
-
-			s *= 0.5f;
-			parentIndex = testSkeleton->bones[3].parentBoneIndex;
-			testSkeleton->bones[3].transform_local = cbmath::makeRotationEuler4XYZ(s, s, s);
-			testSkeleton->bones[3].transform_local.m32 = testSkeleton->boneLength[parentIndex];
-
-			// do forward kin and update skinning
-			updateSkeletonForwardKinematics(testSkeleton);
-			updateSkeletonSkinningMatrices(testSkeleton);
+			objectInterpolationParam += objectInterpolationParamRate*dt;
+			if (objectInterpolationParam > 1.0f) objectInterpolationParam = 0.0f;
+			modelMatrix[curveTargetObject] = kEdit.updateModelMatrix(objectInterpolationParam);
 		}
 	}
+	
 }
 
 
@@ -1198,127 +1082,187 @@ void renderSkybox()
 
 
 // draw curves
-void renderSkinningObject()
+void renderCurveObject()
 {
-	const cbmath::vec4 BLUE(0.0f, 0.5f, 1.0f, 1.0f), ORANGE(1.0f, 0.5f, 0.0f, 1.0f);
-	cbmath::mat4 mvp = viewProjectionMatrix[cameraObjects + activeCamera] * modelMatrix[skinningObject];
+	cbmath::mat4 mvp = viewProjectionMatrix[cameraObjects + activeCamera] * modelMatrix[curveTargetObject];
+	egpActivateVAO(vao + boxModel);
 
-	// draw skinning object
-	currentProgramIndex = skinningProgram;
+	// draw morphing object
+	currentProgramIndex = testTextureProgramIndex;
 	currentProgram = glslPrograms + currentProgramIndex;
 	currentUniformSet = glslCommonUniforms[currentProgramIndex];
 	egpActivateProgram(currentProgram);
 
-	// send MVP and bone matrices
-	egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, mvp.m);
-	egpSendUniformFloatMatrix(currentUniformSet[unif_bones_skinning], UNIF_MAT4,
-		testSkeleton->boneCount, 0, testSkeleton->transform_bindToCurr->m);
+	glBindTexture(GL_TEXTURE_2D, tex[skyboxTexHandle]);
 
-	// draw skinned object
-	egpActivateVAO(vao + skinningModel);
+
+	egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, mvp.m);
 	egpDrawActiveVAO();
-
-
-	// draw skeleton as a series of bones
-	currentProgramIndex = drawBoneProgram;
-	currentProgram = glslPrograms + currentProgramIndex;
-	currentUniformSet = glslCommonUniforms[currentProgramIndex];
-	egpActivateProgram(currentProgram);
-
-	// send MVP and bone info
-	egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, mvp.m);
-	egpSendUniformFloatMatrix(currentUniformSet[unif_bones_world], UNIF_MAT4, 
-		testSkeleton->boneCount, 0, testSkeleton->transform_root->m);
-	egpSendUniformFloat(currentUniformSet[unif_boneLengths], UNIF_FLOAT,
-		testSkeleton->boneCount, testSkeleton->boneLength);
-
-
-	glDisable(GL_DEPTH_TEST);
-
-	// draw bone model in blue
-	egpSendUniformFloat(currentUniformSet[unif_color], UNIF_VEC4, 1, BLUE.v);
-	egpActivateVAO(vao + boneModel);
-	egpDrawActiveVAOInstanced(testSkeleton->boneCount);
-
-	// draw coordinate axis for each bone in orange
-	if (testDrawAxes)
-	{
-		egpSendUniformFloat(currentUniformSet[unif_color], UNIF_VEC4, 1, ORANGE.v);
-		egpActivateVAO(vao + axesModel);
-		egpDrawActiveVAOInstanced(testSkeleton->boneCount);
-	}
-
-	glEnable(GL_DEPTH_TEST);
 }
 
+// draw curve legend (Added by David/Charlie)
+void renderLegend()
+{
+	cbmath::mat4 quadModelViewProjectionMatrix = cbmath::makeTranslation4(-.75f, .75f, 0.0f) * cbmath::makeScale4(.25f);
+	
+	// draw morphing object
+	currentProgramIndex = testTextureProgramIndex;
+	currentProgram = glslPrograms + currentProgramIndex;
+	currentUniformSet = glslCommonUniforms[currentProgramIndex];
+	egpActivateProgram(currentProgram);
 
-// draw frame
+	glBindTexture(GL_TEXTURE_2D, tex[proj3legendHandle]);
+
+	egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, quadModelViewProjectionMatrix.m);
+	
+	egpActivateVAO(vao + fsqModel2);
+	egpDrawActiveVAO();
+}
+
+// draw frame (Modified by David/Charlie)
 // DRAWING AND UPDATING SHOULD BE SEPARATE (good practice)
 void renderGameState()
 {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-	
-	// draw skybox
-	egpfwActivateFBO(fbo + sceneFBO);
-	renderSkybox();
-	renderSkinningObject();
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-	// FINAL DISPLAY: RENDER FINAL IMAGE ON FSQ TO BACK BUFFER
+	if (viewType == OBJECT)
 	{
-		// use back buffer
-		egpfwActivateFBO(0);
-		drawToBackBuffer(viewport_nb, viewport_nb, viewport_tw, viewport_th);
+		// draw skybox
+		egpfwActivateFBO(fbo + sceneFBO);
+		renderSkybox();
+		renderCurveObject();
 
-		// draw FSQ with user-selected FBO on it
-		egpActivateVAO(vao + fsqModel);
-
-		// use texturing program, no mvp
-		currentProgramIndex = testTexturePassthruProgramIndex;
-		currentProgram = glslPrograms + currentProgramIndex;
-		egpActivateProgram(currentProgram);
-
-	//	// bind scene texture
-	//	if (displayColor)
-			egpfwBindColorTargetTexture(fboFinalDisplay, 0, 0);
-	//	else
-	//		egpfwBindDepthTargetTexture(fboFinalDisplay, 0);
-
-		// draw fsq
-		egpDrawActiveVAO();
-
-		// TEST DRAW: coordinate axes at center of spaces
-		//	and other line objects
-		if (testDrawAxes)
+		//-----------------------------------------------------------------------------
+		//-----------------------------------------------------------------------------
+		// FINAL DISPLAY: RENDER FINAL IMAGE ON FSQ TO BACK BUFFER
 		{
-			currentProgramIndex = testColorProgramIndex;
+			// use back buffer
+			egpfwActivateFBO(0);
+			drawToBackBuffer(viewport_nb, viewport_nb, viewport_tw, viewport_th);
+
+			// draw FSQ with user-selected FBO on it
+			egpActivateVAO(vao + fsqModel);
+
+			// use texturing program, no mvp
+			currentProgramIndex = testTexturePassthruProgramIndex;
 			currentProgram = glslPrograms + currentProgramIndex;
-			currentUniformSet = glslCommonUniforms[currentProgramIndex];
 			egpActivateProgram(currentProgram);
 
-			// axes
-			egpActivateVAO(vao + axesModel);
+		//	// bind scene texture
+		//	if (displayColor)
+				egpfwBindColorTargetTexture(fboFinalDisplay, 0, 0);
+		//	else
+		//		egpfwBindDepthTargetTexture(fboFinalDisplay, 0);
 
-			// center of world
-			// (this is useful to see where the origin is and how big one unit is)
-			egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, viewProjectionMatrix[cameraObjects + activeCamera].m);
+			// draw fsq
+			egpDrawActiveVAO();
 
-			// draw axes
+			// TEST DRAW: coordinate axes at center of spaces
+			//	and other line objects
+			if (testDrawAxes)
+			{
+				currentProgramIndex = testColorProgramIndex;
+				currentProgram = glslPrograms + currentProgramIndex;
+				currentUniformSet = glslCommonUniforms[currentProgramIndex];
+				egpActivateProgram(currentProgram);
+
+				// axes
+				egpActivateVAO(vao + axesModel);
+
+				// center of world
+				// (this is useful to see where the origin is and how big one unit is)
+				egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, viewProjectionMatrix[cameraObjects + activeCamera].m);
+
+				// draw axes
+				egpDrawActiveVAO();
+			}
+
+			// done
+			glEnable(GL_DEPTH_TEST);
+		}
+		//-----------------------------------------------------------------------------
+		//-----------------------------------------------------------------------------
+
+		// disable all renderables, shaders
+		egpActivateProgram(0);
+		egpActivateVAO(0);
+	}
+	else if (viewType == KEYFRAME)
+	{
+		//Clear buffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		drawToBackBuffer(viewport_nb, viewport_nb, viewport_tw, viewport_th);
+
+		renderLegend();
+
+		//Draw curves
+		currentProgramIndex = drawCurveProgram;
+		currentProgram = glslPrograms + currentProgramIndex;
+		currentUniformSet = glslCommonUniforms[currentProgramIndex];
+		egpActivateProgram(currentProgram);
+		egpActivateVAO(vao + pointModel);
+		
+		for (int i = 0; i < NUM_KEYTYPES; i++)
+		{
+			
+			egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, curveDrawingProjectionMatrix.m);
+
+			int size = kEdit.getSize(i);
+			kEdit.getData(i, waypointData);
+
+			float paramX = objectInterpolationParam * win_w;
+			egpSendUniformFloat(currentUniformSet[unif_color], UNIF_VEC4, 1, kEdit.getColor(i).v);
+			egpSendUniformFloat(currentUniformSet[unif_paramX], UNIF_FLOAT, 1, &paramX);
+			egpSendUniformFloat(currentUniformSet[unif_waypoint], UNIF_VEC4, size, waypointData);
+			egpSendUniformInt(currentUniformSet[unif_waypointCount], UNIF_INT, 1, &size);
+			int curveType = kEdit.getCurveType();
+			egpSendUniformInt(currentUniformSet[unif_curveType], UNIF_INT, 1, &curveType);
+			egpDrawActiveVAO();
+		}
+		glEnable(GL_DEPTH_TEST);
+		// disable all renderables, shaders
+		egpActivateProgram(0);
+		egpActivateVAO(0);
+	}
+	else
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		drawToBackBuffer(viewport_nb, viewport_nb, viewport_tw, viewport_th);
+
+		renderLegend();
+
+		currentProgramIndex = drawCurveProgram;
+		currentProgram = glslPrograms + currentProgramIndex;
+		currentUniformSet = glslCommonUniforms[currentProgramIndex];
+		egpActivateProgram(currentProgram);
+		egpActivateVAO(vao + pointModel);
+
+		// Switch out with the joker req
+		for (int i = 0; i < NUM_KEYTYPES; i++)
+		{
+
+			egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, curveDrawingProjectionMatrix.m);
+
+			int size = kEdit.getSize(i);
+			kEdit.getData(i, waypointData);
+
+			float paramX = objectInterpolationParam * win_w;
+			egpSendUniformFloat(currentUniformSet[unif_color], UNIF_VEC4, 1, kEdit.getColor(i).v);
+			egpSendUniformFloat(currentUniformSet[unif_paramX], UNIF_FLOAT, 1, &paramX);
+			egpSendUniformFloat(currentUniformSet[unif_waypoint], UNIF_VEC4, size, waypointData);
+			egpSendUniformInt(currentUniformSet[unif_waypointCount], UNIF_INT, 1, &size);
+			int curveType = kEdit.getCurveType();
+			egpSendUniformInt(currentUniformSet[unif_curveType], UNIF_INT, 1, &curveType);
 			egpDrawActiveVAO();
 		}
 
-		// done
-		glEnable(GL_DEPTH_TEST);
-	}
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
-	// disable all renderables, shaders
-	egpActivateProgram(0);
-	egpActivateVAO(0);
+
+		glEnable(GL_DEPTH_TEST);
+		// disable all renderables, shaders
+		egpActivateProgram(0);
+		egpActivateVAO(0);
+	}
 }
 
 
@@ -1389,6 +1333,53 @@ void onResizeWindow(int w, int h)
 	//	it's probably a good idea to tear down and remake the framebuffers...
 	deleteFramebuffers();
 	setupFramebuffers(viewport_tw, viewport_th);
+
+	{
+		const float tmpNF = 100.0f;
+		curveDrawingProjectionMatrix.m00 = 2.0f / (float)viewport_tw;
+		curveDrawingProjectionMatrix.m11 = 2.0f / (float)viewport_th;
+		curveDrawingProjectionMatrix.m22 = -1.0f / tmpNF;
+		curveDrawingProjectionMatrix.m30 = -(float)win_w / (float)viewport_tw;
+		curveDrawingProjectionMatrix.m31 = -(float)win_h / (float)viewport_th;
+	}
+
+	/*{
+		const float tmpNF = 100.0f;
+		curveDrawingProjectionMatrix.m00 = 2.0f / (float)viewport_tw;
+		curveDrawingProjectionMatrix.m11 = 2.0f / (float)viewport_th;
+		curveDrawingProjectionMatrix.m22 = -1.0f / tmpNF;
+		curveDrawingProjectionMatrix.m30 = -(float)win_w / (float)viewport_tw;
+		curveDrawingProjectionMatrix.m31 = -(float)win_h / (float)viewport_th;
+	}*/
+}
+
+//Draw a shaded circle to console
+//Used http://www.text-image.com/convert/ascii.html
+void drawConsoleSphere()
+{
+ std::cout <<  "\n\n";
+ std::cout <<  "              `.--::--....`````                \n";
+ std::cout <<  "           ./+o+//::-..```     ````            \n";
+ std::cout <<  "        `/sysso+/::--.```          ..          \n";
+ std::cout <<  "      `/hhyyso++/:--.```             `.        \n";
+ std::cout <<  "     .ydhhysso+/::-..``                .`      \n";
+ std::cout <<  "    :ddhhhysso+/:--.``                  `.     \n";
+ std::cout <<  "   -ddddhhysso+/:-..``                   ``    \n";
+ std::cout <<  "  `hmdddhhyyso+/::-.```                   .    \n";
+ std::cout <<  "  /mmdddhhyysoo+/:--..``                   .   \n";
+ std::cout <<  "  ymmmdddhhyyso++/:--..````                .   \n";
+ std::cout <<  "  ymmmdddhhhyyso++/::--...`````````````````.   \n";
+ std::cout <<  "  smmmmdddhhhyysoo+//::----.....`````````.`-   \n";
+ std::cout <<  "  /mmmmddddhhhyysso++///:::------.........-.   \n";
+ std::cout <<  "   hmmmmddddhhhyyyssoo++/////:::::::---::::    \n";
+ std::cout <<  "   -mmmmmdddddhhhyysssooo+++++////////////`    \n";
+ std::cout <<  "    -dmmmmmdddddhhhyyyssssoooooo+++oooooo.     \n";
+ std::cout <<  "     .hmmmmmmdddddhhhhyyyyyysssssssssss+`      \n";
+ std::cout <<  "       /dmmmmmmmddddddhhhhhhhyyyyyyyys-        \n";
+ std::cout <<  "         :ymmmmmmmmddddddddhhhhhhhho-          \n";
+ std::cout <<  "           ./sdmmmmmmmmddddddddho:`            \n";
+ std::cout <<  "               .:+osyyhhyyso/:`                \n";
+
 }
 
 // window moved
@@ -1397,3 +1388,4 @@ void onPositionWindow(int x, int y)
 	win_x = x;
 	win_y = y;
 }
+

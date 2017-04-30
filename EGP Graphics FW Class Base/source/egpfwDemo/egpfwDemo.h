@@ -42,6 +42,9 @@ extern "C"
 	void onResizeWindow(int w, int h);
 	void onPositionWindow(int x, int y);
 
+	void renderLegend();
+	void drawConsoleSphere();
+
 	int idle();
 
 

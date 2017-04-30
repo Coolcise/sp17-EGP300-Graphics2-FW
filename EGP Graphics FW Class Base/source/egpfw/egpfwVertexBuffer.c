@@ -3,7 +3,12 @@
 #include "egpfw/egpfw/egpfwVertexBuffer.h"
 
 
+// OpenGL
+#ifdef _WIN32
 #include "GL/glew.h"
+#else	// !_WIN32
+#include <OpenGL/gl3.h>
+#endif	// _WIN32
 
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -12,7 +17,7 @@
 #include <string.h>
 
 
-#define BUFFER_OFFSET(n) ((char *)(n) + 0)
+#define BUFFER_OFFSET(n) ((char *)(0) + n)
 
 
 // pointer to active VAO
@@ -70,7 +75,7 @@ egpVertexBufferObjectDescriptor egpfwCreateVBOInterleaved(const egpAttributeDesc
 egpVertexBufferObjectDescriptor egpfwCreateVBOInterleavedIndexed(const egpAttributeDescriptor *attribs, const unsigned int numAttribs, const unsigned int numVertices, const egpIndexType indexType, const unsigned int numIndices, const void *indexData, egpIndexBufferObjectDescriptor *ibo_out)
 {
 	egpVertexBufferObjectDescriptor vbo = egpfwCreateVBOInterleaved(attribs, numAttribs, numVertices);
-	egpIndexBufferObjectDescriptor ibo = { 0 };
+//	egpIndexBufferObjectDescriptor ibo = { 0 };
 	//...
 	return vbo;
 }
