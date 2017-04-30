@@ -10,7 +10,7 @@
 
 #define WAYPOINTS_MAX 16
 #define SAMPLES_PER_SEGMENT 16
-#define SAMPLES_MAX 128
+#define SAMPLES_MAX 64
 
 #define CURVE_LINES 0
 #define CURVE_BEZIER 1
@@ -19,12 +19,8 @@
 
 
 // ****
-// layout qualifiers for geometry shader: 
-//	-> input primitive
-//	-> output primitive (max count optional)
-layout (points) in;
-layout ( line_strip, max_vertices = SAMPLES_MAX) out;
-
+layout(points) in;
+layout(line_strip, max_vertices = SAMPLES_MAX) out;
 
 // uniforms
 uniform mat4 mvp;
@@ -46,7 +42,7 @@ const vec4 GREEN = vec4(0.0, 1.0, 0.5, 1.0);
 // LERP
 vec4 lerp(in vec4 p0, in vec4 p1, const float t)
 {
-	return (p0 + (p1 - p0) * t);
+	return p0 + (p1-p0)*t;
 }
 
 // ****
@@ -63,65 +59,40 @@ vec4 sampleBezier1(in vec4 p0, in vec4 p1, const float t)
 }
 vec4 sampleBezier2(in vec4 p0, in vec4 p1, in vec4 p2, const float t)
 {
-	vec4 lerp0 = lerp(p0, p1, t);
-	vec4 lerp1 = lerp(p1, p2, t);
-
-	return lerp(lerp0, lerp1, t);
+	return lerp(lerp(p0, p1, t), lerp(p1, p2, t), t);
 }
 vec4 sampleBezier3(in vec4 p0, in vec4 p1, in vec4 p2, in vec4 p3, const float t)
 {
-	vec4 lerp0 = lerp(p0, p1, t);
-	vec4 lerp1 = lerp(p1, p2, t);
-	vec4 lerp2 = lerp(p2, p3, t);
-	
-	vec4 lerp01 = lerp(lerp0, lerp1, t);
-	vec4 lerp12 = lerp(lerp1, lerp2, t);
-
-	return lerp(lerp01, lerp12, t);
+	return lerp(sampleBezier2(p0, p1, p2, t), sampleBezier2(p1, p2, p3, t), t);
 }
 
 // ****
 // Catmull-Rom spline interpolation
 vec4 sampleCatmullRom(in vec4 pPrev, in vec4 p0, in vec4 p1, in vec4 pNext, const float t)
 {
-	mat4 inVecs;
-	inVecs[0] = pPrev;
-	inVecs[1] = p0;
-	inVecs[2] = p1;
-	inVecs[3] = pNext;
+	mat4 influence = mat4(pPrev, p0, p1, pNext);
+	mat4 MCR = mat4(0, -1, 2, -1, 
+						2, 0, -5, 3,
+						0, 1, 4, -3,
+						0, 0, -1, 1);
+	MCR = transpose(MCR);
+	vec4 tVec = vec4(1.0f, t, t*t, t*t*t);
 
-	mat4 kernel;
-	kernel[0] = vec4(0,  2,  0,  0);
-	kernel[1] = vec4(-1, 0,  1,  0);
-	kernel[2] = vec4(2,  -5,  4, -1);
-	kernel[3] = vec4(-1,  3, -3,  1);
-
-
-	vec4 time = vec4(1, t, t*t, t*t*t);
-
-	return (0.5f * inVecs * kernel * time);
+	return 0.5f * influence * MCR * tVec;
 }
 
 // ****
 // cubic Hermite spline interpolation
 vec4 sampleCubicHermite(in vec4 p0, in vec4 m0, in vec4 p1, in vec4 m1, const float t)
 {
-	mat4 inVecs;
-	inVecs[0] = p0;
-	inVecs[1] = m0;
-	inVecs[2] = p1;
-	inVecs[3] = m1;
+	mat4 influence = mat4(p0, m0, p1, m1);
+	mat4 MH = mat4(1, 0, 0, 0, 
+					0, 1, 0, 0,
+					-3, -2, 3, -1,
+					2, 1, -2, 1);
+	vec4 tVec = vec4(1.0f, t, t*t, t*t*t);
 
-	mat4 kernel;
-	kernel[0] = vec4( 1,  0,  0,  0);
-	kernel[1] = vec4( 0,  1,  0,  0);
-	kernel[2] = vec4(-3, -2,  3, -1);
-	kernel[3] = vec4( 2,  1, -2,  1);
-
-
-	vec4 time = vec4(1, t, t*t, t*t*t);
-
-	return (0.5f * inVecs * kernel * time);
+	return influence * MH * tVec;
 }
 
 
@@ -129,27 +100,23 @@ vec4 sampleCubicHermite(in vec4 p0, in vec4 m0, in vec4 p1, in vec4 m1, const fl
 // draw line
 void drawLine(in vec4 p0, in vec4 p1, const int samples, const float dt)
 {
-	// no need for segments, it's just a straight line from p0 to p1...
-	// but to prove that lerp works...
-	int i = 0;
 	float t = 0.0;
-	
-	for(i; i <= samples; i++)
+	for (int i = 0; i <= samples; i++)
 	{
-		gl_Position = mvp * lerp(p0, p1, t);
+		gl_Position = mvp* lerp(p0, p1, t);
 		EmitVertex();
 		t += dt;
 	}
-
 	EndPrimitive();
 }
 
 // ****
 void drawLineFull(in vec4 p0, in vec4 p1)
 {
-	gl_Position = mvp * p0;
+	passColor = BLUE;
+	gl_Position = mvp*p0;
 	EmitVertex();
-	gl_Position = mvp * p1;
+	gl_Position = mvp*p1;
 	EmitVertex();
 	EndPrimitive();
 }
@@ -158,58 +125,46 @@ void drawLineFull(in vec4 p0, in vec4 p1)
 // draw entire Bezier curve
 void drawBezierCurve0(in vec4 p0, const int samples, const float dt)
 {
-	int i = 0;
 	float t = 0.0;
-
-	for(i; i <= samples; i++)
+	for (int i = 0; i <= samples; i++)
 	{
-		gl_Position = mvp * sampleBezier0(p0, t);
+		gl_Position = mvp*sampleBezier0(p0, t);
 		EmitVertex();
 		t += dt;
 	}
-
 	EndPrimitive();
 }
 void drawBezierCurve1(in vec4 p0, in vec4 p1, const int samples, const float dt)
 {
-	int i = 0;
 	float t = 0.0;
-
-	for(i; i <= samples; i++)
+	for (int i = 0; i <= samples; i++)
 	{
-		gl_Position = mvp * sampleBezier1(p0, p1, t);
+		gl_Position = mvp*sampleBezier1(p0, p1, t);
 		EmitVertex();
 		t += dt;
 	}
-
 	EndPrimitive();
 }
 void drawBezierCurve2(in vec4 p0, in vec4 p1, in vec4 p2, const int samples, const float dt)
 {
-	int i = 0;
 	float t = 0.0;
-
-	for(i; i <= samples; i++)
+	for (int i = 0; i <= samples; i++)
 	{
-		gl_Position = mvp * sampleBezier2(p0, p1, p2, t);
+		gl_Position = mvp*sampleBezier2(p0, p1, p2, t);
 		EmitVertex();
 		t += dt;
 	}
-
 	EndPrimitive();
 }
 void drawBezierCurve3(in vec4 p0, in vec4 p1, in vec4 p2, in vec4 p3, const int samples, const float dt)
 {
-	int i = 0;
 	float t = 0.0;
-
-	for(i; i <= samples; i++)
+	for (int i = 0; i <= samples; i++)
 	{
-		gl_Position = mvp * sampleBezier3(p0, p1, p2, p3, t);
+		gl_Position = mvp*sampleBezier3(p0, p1, p2, p3, t);
 		EmitVertex();
 		t += dt;
 	}
-
 	EndPrimitive();
 }
 
@@ -217,16 +172,13 @@ void drawBezierCurve3(in vec4 p0, in vec4 p1, in vec4 p2, in vec4 p3, const int 
 // draw Catmull-Rom spline segment
 void drawCatmullRomSplineSegment(in vec4 pPrev, in vec4 p0, in vec4 p1, in vec4 pNext, const int samples, const float dt)
 {
-	int i = 0;
 	float t = 0.0;
-
-	for(i; i <= samples; i++)
+	for (int i = 0; i <= samples; i++)
 	{
-		gl_Position = mvp * sampleCatmullRom(pPrev, p0, p1, pNext, t);
+		gl_Position = mvp*sampleCatmullRom(pPrev, p0, p1, pNext, t);
 		EmitVertex();
 		t += dt;
 	}
-
 	EndPrimitive();
 }
 
@@ -234,16 +186,13 @@ void drawCatmullRomSplineSegment(in vec4 pPrev, in vec4 p0, in vec4 p1, in vec4 
 // draw cubic Hermite spline segment
 void drawCubicHermiteSplineSegment(in vec4 p0, in vec4 m0, in vec4 p1, in vec4 m1, const int samples, const float dt)
 {
-	int i = 0;
 	float t = 0.0;
-
-	for(i; i <= samples; i++)
+	for (int i = 0; i <= samples; i++)
 	{
-		gl_Position = mvp * sampleCubicHermite(p0, m0, p1, m1, t);
+		gl_Position = mvp*sampleCubicHermite(p0, m0, p1, m1, t);
 		EmitVertex();
 		t += dt;
 	}
-
 	EndPrimitive();
 }
 
@@ -389,7 +338,4 @@ void main()
 		drawCurve(samples, dt);
 	else
 		testCurve(samples, dt);
-
-	passColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	drawLineFull(vec4(100, 100, 0, 1), vec4(200, 200, 0, 1));
 }
