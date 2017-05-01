@@ -73,7 +73,7 @@ float TCurve::lineStripDeltaT(float t)
 	return egpfwLerp(p0.y, p1.y, normSampleT);
 }
 
-//Credits to Charlie McGarey for letting me use this code
+//Credits to Charlie McGarey for letting me use this code (prettmy much the same as in KeyframeEditor)
 float TCurve::bezierDeltaT(float t)
 {
 	int i = mPoints.size();
