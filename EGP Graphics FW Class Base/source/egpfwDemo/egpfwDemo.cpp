@@ -41,6 +41,7 @@
 #include "egpfw/egpfw.h"
 #include "KeyframeEditor.h"
 #include <iostream>
+#include "TCurve.h"
 
 
 //-----------------------------------------------------------------------------
@@ -72,8 +73,12 @@ unsigned int win_y = 0;
 unsigned int win_w = 1280;
 unsigned int win_h = 720;
 #define WAYPOINTS_MAX 60
+
 KeyframeEditor kEdit = KeyframeEditor(win_w, win_h);
 float* waypointData;
+
+TCurve tCurve = TCurve(win_w, win_h);
+float* tCurveData;
 
 const unsigned int viewport_b = 0;
 const unsigned int viewport_tb = viewport_b + viewport_b;
@@ -113,9 +118,9 @@ enum ModelIndex
 	boxModel, sphere8x6Model, sphere32x24Model,
 	fsqModel2,
 	// morph targets
-	morphModel, 
+	morphModel,
 	pointModel,
-//-----------------------------
+	//-----------------------------
 	modelCount
 };
 egpVertexArrayObjectDescriptor vao[modelCount] = { 0 };
@@ -128,7 +133,7 @@ enum TextureIndex
 	skyboxTexHandle,
 	proj3legendHandle,
 
-//-----------------------------
+	//-----------------------------
 	textureCount
 };
 unsigned int tex[textureCount] = { 0 };
@@ -139,33 +144,33 @@ unsigned int tex[textureCount] = { 0 };
 enum GLSLProgramIndex
 {
 	testColorProgramIndex,
-	testSolidColorProgramIndex, 
+	testSolidColorProgramIndex,
 	testTextureProgramIndex,
 	testTexturePassthruProgramIndex,
 
 	//texOnQuadProgramIndex,
 
 	// morph targets programs
-	morphTargetsProgram, 
-	morphTargetsDrawCurveProgram, 
+	morphTargetsProgram,
+	morphTargetsDrawCurveProgram,
 	drawCurveProgram,
-//-----------------------------
+	//-----------------------------
 	GLSLProgramCount
 };
 enum GLSLCommonUniformIndex
 {
 	unif_mvp,
-	unif_color, 
+	unif_color,
 	unif_dm,
 
 	// morph target uniforms
-	unif_param, 
-	unif_index, 
+	unif_param,
+	unif_index,
 	unif_waypoint,
 	unif_waypointCount,
 	unif_paramX,
 	unif_curveType,
-//-----------------------------
+	//-----------------------------
 	GLSLCommonUniformCount
 };
 const char *commonUniformName[] = {
@@ -190,15 +195,15 @@ int currentProgramIndex = 0;
 enum FBOIndex
 {
 	// scene
-	sceneFBO, 
+	sceneFBO,
 	blackFBO,
-//-----------------------------
+	//-----------------------------
 	fboCount
 };
 enum DisplayMode
 {
-	displayScene, 
-	displaySceneDepth, 
+	displayScene,
+	displaySceneDepth,
 };
 egpFrameBufferObjectDescriptor fbo[fboCount], *fboFinalDisplay = fbo;
 int displayMode = displayScene;
@@ -226,12 +231,12 @@ cbmath::vec4 cameraPos_world[numCameras] = {
 enum SceneObjects
 {
 	skyboxObject,
-	curveTargetObject, 
-//-----------------------------
+	curveTargetObject,
+	//-----------------------------
 	sceneObjectCount,
-//-----------------------------
+	//-----------------------------
 	cameraObjects = sceneObjectCount,
-//-----------------------------
+	//-----------------------------
 	sceneObjectTotalCount = sceneObjectCount + numCameras
 };
 
@@ -303,6 +308,7 @@ int initGL()
 	glPointSize(pointSize);
 
 	waypointData = new float[WAYPOINTS_MAX * 4];
+	tCurveData = new float[WAYPOINTS_MAX * 4];
 
 	// done
 	return 1;
@@ -404,10 +410,10 @@ void setupGeometry()
 		// ****
 		// positions for pose 0: default quad
 		const float testMorphShapePosition0[numVertices * 3] = {
-			-1.7f, -1.5f, -0.3f, 
-			+1.3f, -2.1f,  1.1f, 
-			-1.5f, +1.5f,  0.4f, 
-			+1.3f, +1.6f, -1.0f, 
+			-1.7f, -1.5f, -0.3f,
+			+1.3f, -2.1f,  1.1f,
+			-1.5f, +1.5f,  0.4f,
+			+1.3f, +1.6f, -1.0f,
 		};
 		// positions for pose 1: move the bottom-left corner forward
 		const float testMorphShapePosition1[numVertices * 3] = {
@@ -441,7 +447,7 @@ void setupGeometry()
 			egpCreateAttributeDescriptor((egpAttributeName)2, ATTRIB_VEC3, testMorphShapePosition2),
 			egpCreateAttributeDescriptor((egpAttributeName)3, ATTRIB_VEC3, testMorphShapePosition3),
 		};
-		vao[morphModel] = egpCreateVAOInterleaved(PRIM_TRIANGLE_STRIP, 
+		vao[morphModel] = egpCreateVAOInterleaved(PRIM_TRIANGLE_STRIP,
 			morphTargetModelAttribs, totalAttribs, numVertices, (vbo + morphModel), 0);
 	}
 }
@@ -509,7 +515,7 @@ void setupTextures()
 	glBindTexture(GL_TEXTURE_2D, tex[proj3legendHandle]);					// activate 2D texture
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	// texture gets small/large, smooth
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);		
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
 	// disable textures
@@ -601,7 +607,7 @@ void setupShaders()
 			egpReleaseFileContents(files + 1);
 		}
 
-		
+
 
 
 		// draw solid color (uniform)
@@ -839,7 +845,6 @@ int initGame()
 	// setup shaders
 	setupShaders();
 
-
 	// other
 	egpSetActiveMouse(mouse);
 	egpSetActiveKeyboard(keybd);
@@ -892,9 +897,8 @@ void displayControls()
 	printf("\n 1 = switch to keyframe editor");
 	printf("\n 2 = switch to object viewer");
 	printf("\n r = reset all keyframes");
-	
-	printf("\n d = draw a sheded circle in console");
 
+	printf("\n d = draw a sheded circle in console");
 
 	printf("\n-------------------------------------------------------\n");
 }
@@ -915,7 +919,6 @@ void handleInputState()
 	// pause/play
 	if (egpKeyboardIsKeyPressed(keybd, 'p'))
 		playing = 1 - playing;
-
 
 	// reload shaders
 	if (egpKeyboardIsKeyPressed(keybd, 'l'))
@@ -943,29 +946,12 @@ void handleInputState()
 		printf("Now Editing Z values\n");
 	}
 
-	if (egpKeyboardIsKeyPressed(keybd, 'd'))
+	if (egpKeyboardIsKeyPressed(keybd, 'm'))
 	{
 		drawConsoleSphere();
 	}
-	
-	
-	if (egpKeyboardIsKeyPressed(keybd, 'c'))
-	{
-		printf("switching to Catmull-Rom\n");
-		kEdit.switchCurveType(CATMULL_ROM);
-	}
 
-	if (egpKeyboardIsKeyPressed(keybd, 'i'))
-	{
-		printf("switching to Line Strips\n");
-		kEdit.switchCurveType(LINE_STRIP);
-	}
-
-	if (egpKeyboardIsKeyPressed(keybd, 'b'))
-	{
-		printf("switching to Bezier\n");
-		kEdit.switchCurveType(BEZIER);
-	}
+	
 
 	// Switching between the different editors
 	if (egpKeyboardIsKeyPressed(keybd, '1'))
@@ -984,28 +970,82 @@ void handleInputState()
 		viewType = OBJECT;
 	}
 
+	if (viewType == KEYFRAME || viewType == OBJECT)
+	{
 
-	// Add keyframes on mouse press
-	if (viewType == KEYFRAME && egpMouseIsButtonPressed(mouse, 0))
-	{
-		kEdit.addKeyframe(
-			static_cast<float>(egpMouseX(mouse)),
-			static_cast<float>(egpMouseY(mouse)),
-			static_cast<KeyType>(currType));
-	}
-	else if (viewType == KEYFRAME && egpMouseIsButtonPressed(mouse, 2))
-	{
-		kEdit.addKeyframe(
-			static_cast<float>(egpMouseX(mouse)),
-			static_cast<float>(egpMouseY(mouse)),
-			static_cast<KeyType>(3 + currType));
+		// Add keyframes on mouse press
+		if (egpMouseIsButtonPressed(mouse, 0))
+		{
+			kEdit.addKeyframe(
+				static_cast<float>(egpMouseX(mouse)),
+				static_cast<float>(egpMouseY(mouse)),
+				static_cast<KeyType>(currType));
+		}
+		else if (egpMouseIsButtonPressed(mouse, 2))
+		{
+			kEdit.addKeyframe(
+				static_cast<float>(egpMouseX(mouse)),
+				static_cast<float>(egpMouseY(mouse)),
+				static_cast<KeyType>(3 + currType));
+		}
+
+		// Reset the keyframes
+		if (egpKeyboardIsKeyPressed(keybd, 'r'))
+		{
+			kEdit.reset();
+		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'c'))
+		{
+			printf("switching keyframes to Catmull-Rom\n");
+			kEdit.switchCurveType(CATMULL_ROM);
+		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'i'))
+		{
+			printf("switching keyframes to Line Strips\n");
+			kEdit.switchCurveType(LINE_STRIP);
+		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'b'))
+		{
+			printf("switching keyframes to Bezier\n");
+			kEdit.switchCurveType(BEZIER);
+		}
 	}
 
-	// Reset the keyframes
-	if (egpKeyboardIsKeyPressed(keybd, 'r'))
+	if (viewType == T_CURVE)
 	{
-		kEdit.reset();
+		if (egpMouseIsButtonPressed(mouse, 0))
+		{
+			tCurve.addPoint(cbmath::vec2(static_cast<float>(egpMouseX(mouse)), static_cast<float>(egpMouseY(mouse))));
+		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'r'))
+		{
+			tCurve.reset();
+		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'c'))
+		{
+			printf("switching t curve to Catmull-Rom\n");
+			tCurve.setCurveType(CATMULL_ROM);
+		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'i'))
+		{
+			printf("switching t curve to Line Strips\n");
+			tCurve.setCurveType(LINE_STRIP);
+		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'b'))
+		{
+			printf("switching t curve to Bezier\n");
+			tCurve.setCurveType(BEZIER);
+		}
 	}
+
+	
 
 	// finish by updating input state
 	egpMouseUpdate(mouse);
@@ -1020,14 +1060,13 @@ void updateGameState(float dt)
 
 	// update camera
 	updateCameraControlled(dt, controlCamera, activeCamera, mouse);
-//	updateCameraOrbit(dt, controlCamera);
+	//	updateCameraOrbit(dt, controlCamera);
 
-	// update view matrix
-	// 'c3' in a 4x4 matrix is the translation part
+		// update view matrix
+		// 'c3' in a 4x4 matrix is the translation part
 	modelMatrix[controlCamera].c3 = cameraPos_world[activeCamera];
 	modelMatrixInv[controlCamera] = cbtk::cbmath::transformInverseNoScale(modelMatrix[controlCamera]);
 	viewProjectionMatrix[controlCamera] = projectionMatrix[activeCamera] * modelMatrixInv[controlCamera];
-
 
 	// update game objects
 	// scale time first
@@ -1052,10 +1091,10 @@ void updateGameState(float dt)
 		{
 			objectInterpolationParam += objectInterpolationParamRate*dt;
 			if (objectInterpolationParam > 1.0f) objectInterpolationParam = 0.0f;
-			modelMatrix[curveTargetObject] = kEdit.updateModelMatrix(objectInterpolationParam);
+			modelMatrix[curveTargetObject] = kEdit.updateModelMatrix(tCurve.getDeltaT(objectInterpolationParam));
 		}
 	}
-	
+
 }
 
 
@@ -1104,7 +1143,7 @@ void renderCurveObject()
 void renderLegend()
 {
 	cbmath::mat4 quadModelViewProjectionMatrix = cbmath::makeTranslation4(-.75f, .75f, 0.0f) * cbmath::makeScale4(.25f);
-	
+
 	// draw morphing object
 	currentProgramIndex = testTextureProgramIndex;
 	currentProgram = glslPrograms + currentProgramIndex;
@@ -1114,7 +1153,7 @@ void renderLegend()
 	glBindTexture(GL_TEXTURE_2D, tex[proj3legendHandle]);
 
 	egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, quadModelViewProjectionMatrix.m);
-	
+
 	egpActivateVAO(vao + fsqModel2);
 	egpDrawActiveVAO();
 }
@@ -1123,8 +1162,8 @@ void renderLegend()
 // DRAWING AND UPDATING SHOULD BE SEPARATE (good practice)
 void renderGameState()
 {
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------
 	if (viewType == OBJECT)
 	{
 		// draw skybox
@@ -1148,13 +1187,13 @@ void renderGameState()
 			currentProgram = glslPrograms + currentProgramIndex;
 			egpActivateProgram(currentProgram);
 
-		//	// bind scene texture
-		//	if (displayColor)
-				egpfwBindColorTargetTexture(fboFinalDisplay, 0, 0);
-		//	else
-		//		egpfwBindDepthTargetTexture(fboFinalDisplay, 0);
+			//	// bind scene texture
+			//	if (displayColor)
+			egpfwBindColorTargetTexture(fboFinalDisplay, 0, 0);
+			//	else
+			//		egpfwBindDepthTargetTexture(fboFinalDisplay, 0);
 
-			// draw fsq
+				// draw fsq
 			egpDrawActiveVAO();
 
 			// TEST DRAW: coordinate axes at center of spaces
@@ -1201,16 +1240,15 @@ void renderGameState()
 		currentUniformSet = glslCommonUniforms[currentProgramIndex];
 		egpActivateProgram(currentProgram);
 		egpActivateVAO(vao + pointModel);
-		
+
 		for (int i = 0; i < NUM_KEYTYPES; i++)
 		{
-			
 			egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, curveDrawingProjectionMatrix.m);
 
 			int size = kEdit.getSize(i);
 			kEdit.getData(i, waypointData);
 
-			float paramX = objectInterpolationParam * win_w;
+			float paramX = tCurve.getDeltaT(objectInterpolationParam) * win_w;
 			egpSendUniformFloat(currentUniformSet[unif_color], UNIF_VEC4, 1, kEdit.getColor(i).v);
 			egpSendUniformFloat(currentUniformSet[unif_paramX], UNIF_FLOAT, 1, &paramX);
 			egpSendUniformFloat(currentUniformSet[unif_waypoint], UNIF_VEC4, size, waypointData);
@@ -1226,36 +1264,31 @@ void renderGameState()
 	}
 	else
 	{
+		//Clear buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		drawToBackBuffer(viewport_nb, viewport_nb, viewport_tw, viewport_th);
 
-		renderLegend();
-
+		//Draw curves
 		currentProgramIndex = drawCurveProgram;
 		currentProgram = glslPrograms + currentProgramIndex;
 		currentUniformSet = glslCommonUniforms[currentProgramIndex];
 		egpActivateProgram(currentProgram);
 		egpActivateVAO(vao + pointModel);
 
-		// Switch out with the joker req
-		for (int i = 0; i < NUM_KEYTYPES; i++)
-		{
 
-			egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, curveDrawingProjectionMatrix.m);
+		egpSendUniformFloatMatrix(currentUniformSet[unif_mvp], UNIF_MAT4, 1, 0, curveDrawingProjectionMatrix.m);
 
-			int size = kEdit.getSize(i);
-			kEdit.getData(i, waypointData);
+		int size = tCurve.getSize();
+		tCurve.getData(tCurveData);
 
-			float paramX = objectInterpolationParam * win_w;
-			egpSendUniformFloat(currentUniformSet[unif_color], UNIF_VEC4, 1, kEdit.getColor(i).v);
-			egpSendUniformFloat(currentUniformSet[unif_paramX], UNIF_FLOAT, 1, &paramX);
-			egpSendUniformFloat(currentUniformSet[unif_waypoint], UNIF_VEC4, size, waypointData);
-			egpSendUniformInt(currentUniformSet[unif_waypointCount], UNIF_INT, 1, &size);
-			int curveType = kEdit.getCurveType();
-			egpSendUniformInt(currentUniformSet[unif_curveType], UNIF_INT, 1, &curveType);
-			egpDrawActiveVAO();
-		}
-
+		float paramX = objectInterpolationParam * win_w;
+		egpSendUniformFloat(currentUniformSet[unif_color], UNIF_VEC4, 1, tCurve.getColor().v);
+		egpSendUniformFloat(currentUniformSet[unif_paramX], UNIF_FLOAT, 1, &paramX);
+		egpSendUniformFloat(currentUniformSet[unif_waypoint], UNIF_VEC4, size, tCurveData);
+		egpSendUniformInt(currentUniformSet[unif_waypointCount], UNIF_INT, 1, &size);
+		int curveType = tCurve.getCurveType();
+		egpSendUniformInt(currentUniformSet[unif_curveType], UNIF_INT, 1, &curveType);
+		egpDrawActiveVAO();
 
 
 		glEnable(GL_DEPTH_TEST);
@@ -1288,10 +1321,10 @@ int idle()
 		ret = 1;
 	}
 
-//	if (egpTimerUpdate(secondTimer))
-//	{
-//		printf("\n %u frames rendered over %u seconds", renderTimer->ticks, secondTimer->ticks);
-//	}
+	//	if (egpTimerUpdate(secondTimer))
+	//	{
+	//		printf("\n %u frames rendered over %u seconds", renderTimer->ticks, secondTimer->ticks);
+	//	}
 
 	return ret;
 }
@@ -1357,28 +1390,28 @@ void onResizeWindow(int w, int h)
 //Used http://www.text-image.com/convert/ascii.html
 void drawConsoleSphere()
 {
- std::cout <<  "\n\n";
- std::cout <<  "              `.--::--....`````                \n";
- std::cout <<  "           ./+o+//::-..```     ````            \n";
- std::cout <<  "        `/sysso+/::--.```          ..          \n";
- std::cout <<  "      `/hhyyso++/:--.```             `.        \n";
- std::cout <<  "     .ydhhysso+/::-..``                .`      \n";
- std::cout <<  "    :ddhhhysso+/:--.``                  `.     \n";
- std::cout <<  "   -ddddhhysso+/:-..``                   ``    \n";
- std::cout <<  "  `hmdddhhyyso+/::-.```                   .    \n";
- std::cout <<  "  /mmdddhhyysoo+/:--..``                   .   \n";
- std::cout <<  "  ymmmdddhhyyso++/:--..````                .   \n";
- std::cout <<  "  ymmmdddhhhyyso++/::--...`````````````````.   \n";
- std::cout <<  "  smmmmdddhhhyysoo+//::----.....`````````.`-   \n";
- std::cout <<  "  /mmmmddddhhhyysso++///:::------.........-.   \n";
- std::cout <<  "   hmmmmddddhhhyyyssoo++/////:::::::---::::    \n";
- std::cout <<  "   -mmmmmdddddhhhyysssooo+++++////////////`    \n";
- std::cout <<  "    -dmmmmmdddddhhhyyyssssoooooo+++oooooo.     \n";
- std::cout <<  "     .hmmmmmmdddddhhhhyyyyyysssssssssss+`      \n";
- std::cout <<  "       /dmmmmmmmddddddhhhhhhhyyyyyyyys-        \n";
- std::cout <<  "         :ymmmmmmmmddddddddhhhhhhhho-          \n";
- std::cout <<  "           ./sdmmmmmmmmddddddddho:`            \n";
- std::cout <<  "               .:+osyyhhyyso/:`                \n";
+	std::cout << "\n\n";
+	std::cout << "              `.--::--....`````                \n";
+	std::cout << "           ./+o+//::-..```     ````            \n";
+	std::cout << "        `/sysso+/::--.```          ..          \n";
+	std::cout << "      `/hhyyso++/:--.```             `.        \n";
+	std::cout << "     .ydhhysso+/::-..``                .`      \n";
+	std::cout << "    :ddhhhysso+/:--.``                  `.     \n";
+	std::cout << "   -ddddhhysso+/:-..``                   ``    \n";
+	std::cout << "  `hmdddhhyyso+/::-.```                   .    \n";
+	std::cout << "  /mmdddhhyysoo+/:--..``                   .   \n";
+	std::cout << "  ymmmdddhhyyso++/:--..````                .   \n";
+	std::cout << "  ymmmdddhhhyyso++/::--...`````````````````.   \n";
+	std::cout << "  smmmmdddhhhyysoo+//::----.....`````````.`-   \n";
+	std::cout << "  /mmmmddddhhhyysso++///:::------.........-.   \n";
+	std::cout << "   hmmmmddddhhhyyyssoo++/////:::::::---::::    \n";
+	std::cout << "   -mmmmmdddddhhhyysssooo+++++////////////`    \n";
+	std::cout << "    -dmmmmmdddddhhhyyyssssoooooo+++oooooo.     \n";
+	std::cout << "     .hmmmmmmdddddhhhhyyyyyysssssssssss+`      \n";
+	std::cout << "       /dmmmmmmmddddddhhhhhhhyyyyyyyys-        \n";
+	std::cout << "         :ymmmmmmmmddddddddhhhhhhhho-          \n";
+	std::cout << "           ./sdmmmmmmmmddddddddho:`            \n";
+	std::cout << "               .:+osyyhhyyso/:`                \n";
 
 }
 

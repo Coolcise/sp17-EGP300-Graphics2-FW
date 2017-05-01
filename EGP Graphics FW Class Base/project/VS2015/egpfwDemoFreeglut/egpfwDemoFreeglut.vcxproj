@@ -309,6 +309,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfwDemo\egpfwDemo.cpp" />
+    <ClCompile Include="..\..\..\source\egpfwDemo\TCurve.cpp" />
     <ClCompile Include="egpfwDemoFreeglut\egpDemoFreeglutMain.cpp" />
   </ItemGroup>
   <ItemGroup>

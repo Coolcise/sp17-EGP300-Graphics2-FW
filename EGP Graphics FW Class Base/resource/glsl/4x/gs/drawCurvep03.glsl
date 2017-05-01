@@ -85,6 +85,27 @@ vec4 sampleBezier(float t)
 	return vals[0];
 }
 
+// cubic Hermite spline interpolation
+vec4 sampleCubicHermite(in vec4 p0, in vec4 m0, in vec4 p1, in vec4 m1, const float t)
+{
+	mat4 inVecs;
+	inVecs[0] = p0;
+	inVecs[1] = m0;
+	inVecs[2] = p1;
+	inVecs[3] = m1;
+
+	mat4 kernel;
+	kernel[0] = vec4( 1,  0,  0,  0);
+	kernel[1] = vec4( 0,  1,  0,  0);
+	kernel[2] = vec4(-3, -2,  3, -1);
+	kernel[3] = vec4( 2,  1, -2,  1);
+
+
+	vec4 time = vec4(1, t, t*t, t*t*t);
+
+	return (0.5f * inVecs * kernel * time);
+}
+
 void drawCatmullRomSplineSegment(in vec4 pPrev, in vec4 p0, in vec4 p1, in vec4 pNext, const int samples, const float dt)
 {
 	float t = 0.0;
@@ -154,6 +175,20 @@ void drawCatmullRomCurve(const int samples, const float dt)
 	}
 }
 
+void drawCubicHermiteSplineSegment(in vec4 p0, in vec4 m0, in vec4 p1, in vec4 m1, const int samples, const float dt)
+{
+	int i = 0;
+	float t = 0.0;
+
+	for(i; i <= samples; i++)
+	{
+		gl_Position = mvp * sampleCubicHermite(p0, m0, p1, m1, t);
+		EmitVertex();
+		t += dt;
+	}
+
+	EndPrimitive();
+}
 
 void main()
 {

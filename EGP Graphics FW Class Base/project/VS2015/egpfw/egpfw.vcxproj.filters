@@ -51,6 +51,12 @@
     <ClInclude Include="..\..\..\include\KeyframeEditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\source\egpfwDemo\TCurve.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\source\egpfw\Interpolation.h">
+      <Filter>Source Files\cpp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfw\egpfwPrimitiveDataSimple.c">
@@ -75,6 +81,9 @@
       <Filter>Source Files\c</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\source\egpfw\KeyframeEditor.cpp">
+      <Filter>Source Files\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\egpfw\Interpolation.cpp">
       <Filter>Source Files\cpp</Filter>
     </ClCompile>
   </ItemGroup>

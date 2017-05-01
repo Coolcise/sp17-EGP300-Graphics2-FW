@@ -30,7 +30,8 @@ enum CurveType
 {
 	LINE_STRIP,
 	BEZIER,
-	CATMULL_ROM
+	CATMULL_ROM,
+	CUBIC_HERMITE
 };
 
 class KeyframeEditor
@@ -39,8 +40,8 @@ private:
 	std::vector<cbmath::vec2*> mKeyChannels[NUM_KEYTYPES];
 	cbmath::vec4 mColors[NUM_KEYTYPES];
 
-	float mWinWidth;
-	float mWinHeight;
+	int mWinWidth;
+	int mWinHeight;
 
 	const int MAX_KEYS = 8;
 
@@ -60,7 +61,7 @@ private:
 
 	void addBaseFrames();
 public:
-	KeyframeEditor(float winWidth, float winHeight);
+	KeyframeEditor(int winWidth, int winHeight);
 	virtual ~KeyframeEditor();
 
 	void addKeyframe(float tVal, float val, KeyType type);

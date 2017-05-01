@@ -57,6 +57,9 @@
     <ClCompile Include="egpfwDemoFreeglut\egpDemoFreeglutMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\source\egpfwDemo\TCurve.cpp">
+      <Filter>Source Files\egpfwDemo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\source\egpfwDemo\egpfwDemo.h">

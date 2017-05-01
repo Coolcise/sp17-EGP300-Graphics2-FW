@@ -53,7 +53,7 @@ cbmath::vec4 KeyframeEditor::getColor(int type)
 // Gets the size of channel (# of keyframes)
 int KeyframeEditor::getSize(int type) const
 {
-	return mKeyChannels[type].size();
+	return static_cast<int>(mKeyChannels[type].size());
 }
 
 // Gets the value at a specific t using linestrips
@@ -87,7 +87,7 @@ float KeyframeEditor::getValLine(KeyType key, const float& t) const
 // Gets the value at a specific t using Bezier curves
 float KeyframeEditor::getValBezier(KeyType key, const float& t) const
 {
-	int i = mKeyChannels[key].size();
+	int i = static_cast<int>(mKeyChannels[key].size());
 	// New/Deleting things kinda sucks but I can't come up with a better solution
 	cbmath::vec2* vals = new cbmath::vec2[i];
 	
@@ -194,7 +194,7 @@ void KeyframeEditor::addBaseFrames()
 	}
 }
 
-KeyframeEditor::KeyframeEditor(float winWidth, float winHeight)
+KeyframeEditor::KeyframeEditor(int winWidth, int winHeight)
 {
 	mWinWidth = winWidth;
 	mWinHeight = winHeight;
