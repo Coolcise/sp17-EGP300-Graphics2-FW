@@ -22,34 +22,37 @@ float egpfwLerpInv(const float v0, const float v1, const float v)
 
 // ****
 // Catmull-Rom spline interpolation
-float egpfwCatmullRom(const float vPrev, const float v0, const float v1, const float vNext, const float param)
+float egpfwCatmullRom(const float vPrev, const float v0, const float v1, const float vNext, const float t)
 {
-	/*mat4 inVecs;
-	inVecs[0] = vPrev;
-	inVecs[1] = v0;
-	inVecs[2] = v1;
-	inVecs[3] = vNext;
+	float t2 = t*t;
+	float t3 = t*t*t;
 
-	mat4 kernel;
-	kernel[0] = vec4(0, 2, 0, 0);
-	kernel[1] = vec4(-1, 0, 1, 0);
-	kernel[2] = vec4(2, -5, 4, -1);
-	kernel[3] = vec4(-1, 3, -3, 1);
+	//From powerpoint (kt -> kernel * time)
+	float kt1 = -t + 2 * t2 - t3;
+	float kt2 = 2 - 5 * t2 + 3 * t3;
+	float kt3 = t + 4 * t2 - 3 * t3;
+	float kt4 = -t2 + t3;
 
+	float result = kt1 * vPrev + kt2 * v0 + kt3 * v1 + kt4 * vNext;
 
-	vec4 time = vec4(1, param, param*param, param*param*param);
-
-	return (0.5f * inVecs * kernel * time);*/
-	return 0.0f;
+	return result * 0.5f;
 }
 
 
 // ****
 // Cubic hermite spline interpolation
-float egpfwCubicHermite(const float v0, const float dv0, const float v1, const float dv1, const float param)
+float egpfwCubicHermite(const float v0, const float dv0, const float v1, const float dv1, const float t)
 {
-	//...
-	return 0.0f;
+	float t2 = t*t;
+	float t3 = t*t*t;
+
+	//From powerpoint (kt -> kernel * time)
+	float kt1 = 1 - 3 * t2 + 2 * t3;
+	float kt2 = t - 2 * t2 + t3;
+	float kt3 = 3 * t2 - 2 * t3;
+	float kt4 = -t2 + t3;
+
+	return kt1 * v0 + kt2 * dv0 + kt3 * v1 + kt4 * dv1;
 }
 
 

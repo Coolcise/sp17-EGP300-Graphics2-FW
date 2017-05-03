@@ -391,5 +391,5 @@ void main()
 		testCurve(samples, dt);
 
 	passColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	drawLineFull(vec4(100, 100, 0, 1), vec4(200, 200, 0, 1));
+	//drawLineFull(vec4(100, 100, 0, 1), vec4(200, 200, 0, 1));
 }
