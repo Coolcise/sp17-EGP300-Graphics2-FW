@@ -193,7 +193,26 @@ void drawCubicHermiteSplineSegment(in vec4 p0, in vec4 m0, in vec4 p1, in vec4 m
 
 void drawCubicHermiteCurve(const int samples, const float dt)
 {
-	drawLineFull(waypoint[0], waypoint[waypointCount -1]);
+	if(waypointCount < 4)
+	{
+		drawLineFull(waypoint[0], waypoint[waypointCount -1]);
+		return;
+	}
+	
+	drawCubicHermiteSplineSegment(waypoint[0], waypoint[1], waypoint[2], waypoint[3], samples, dt);
+	
+	if(waypointCount == 4)
+		return;
+	else
+	{
+		for(int i = 2; i < waypointCount - 3; i+=2)
+			drawCubicHermiteSplineSegment(waypoint[i], waypoint[i+1], waypoint[i+2], waypoint[i+3], samples, dt);
+
+		if(waypointCount % 2 == 0)
+			drawCubicHermiteSplineSegment(waypoint[waypointCount - 4], waypoint[waypointCount - 3], waypoint[waypointCount - 2], waypoint[waypointCount - 1], samples, dt);
+		else
+			drawCubicHermiteSplineSegment(waypoint[waypointCount - 3], waypoint[waypointCount - 2], waypoint[waypointCount - 1], waypoint[waypointCount - 2], samples, dt);
+	}
 }
 
 void main()

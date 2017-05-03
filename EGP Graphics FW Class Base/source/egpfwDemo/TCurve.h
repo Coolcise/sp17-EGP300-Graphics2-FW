@@ -25,15 +25,15 @@ public:
 	cbmath::vec4 getColor() const  { return COLOR; }
 
 	void getData(float* data);
-	float getDeltaT(float t);
+	float getDeltaT(const float t);
 
-	void addPoint(cbmath::vec2 point);
+	void addPoint(const cbmath::vec2 point);
 
 	void reset();
 
-	float lineStripDeltaT(float t);
-	float bezierDeltaT(float t);
-	float catmulRomDeltaT(float t);
-	float cubicHermiteDeltaT(float t);
+	float lineStripDeltaT(const float t);
+	float bezierDeltaT(const float t);
+	float catmulRomDeltaT(const float t);
+	float cubicHermiteDeltaT(const float t);
 
 };

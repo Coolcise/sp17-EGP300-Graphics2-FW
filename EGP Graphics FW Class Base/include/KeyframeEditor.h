@@ -58,6 +58,7 @@ private:
 	float getValLine(KeyType key, const float& t) const;
 	float getValBezier(KeyType key, const float& t) const;
 	float getValCatmullRom(KeyType key, const float& t) const;
+	float getValCubicHermite(KeyType key, const float& t) const;
 
 	void addBaseFrames();
 public:

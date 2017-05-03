@@ -121,7 +121,6 @@ float KeyframeEditor::getValCatmullRom(KeyType key, const float& t) const
 {
 	if (mKeyChannels[key].size() < 3) return (*mKeyChannels[key].begin())->y;
 
-
 	bool deletePrev, deleteNext;
 	deleteNext = deletePrev = false;
 
@@ -179,10 +178,93 @@ float KeyframeEditor::getValCatmullRom(KeyType key, const float& t) const
 	}
 
 	float val = egpfwCatmullRom(pPrev->y, p0->y, p1->y, pNext->y, (t - p0->x) / (p1->x - p0->x));
-	printf("%f\n", val);
 	if (deleteNext) delete pNext;
 	if (deletePrev) delete pPrev;
 	return val;
+}
+
+float KeyframeEditor::getValCubicHermite(KeyType key, const float& t) const
+{
+		//Need 4 points to work
+		if (mKeyChannels[key].size() < 4) return getValLine(key, t);
+
+		cbmath::vec2 p0, h0, p1, h1;
+
+		//Find beginning and end points
+		for (auto it = mKeyChannels[key].begin(); it != mKeyChannels[key].end(); ++it)
+		{
+			//it t == 0 (with a margin of float errors)
+			if (t < 0.001)
+			{
+				p0 = **it;
+				h0 = **++it;
+				p1 = **++it;
+				h1 = **++it;
+				break;
+			}
+
+			//t==1 or it is the last point
+			if (t > 0.999 || *it == mKeyChannels[key].back())
+			{
+				p1 = *(mKeyChannels[key].back());
+
+				//Get the last iterator to be able to manipulate it
+				it = mKeyChannels[key].end();
+				--it;
+
+				//Second to last point is used as handles for both points
+				h0 = h1 = **--it;
+
+				p0 = **--it;
+				break;
+			}
+
+
+			if (t < (**it).x)
+			{
+				//Check if next to last. If so make it a handle
+				++it;
+
+				if (*it == mKeyChannels[key].back())
+				{
+					//same as t == 1
+					p1 = **it;
+					h0 = h1 = **--it;
+					p0 = **--it;
+					break;
+				}
+
+				//revert after checking the above
+				--it;
+
+				p0 = **it;
+				h0 = **++it;
+
+				//Checking if next is last point
+				++it;
+
+				if (*it == mKeyChannels[key].back())
+				{
+					p1 = **it;
+					h1 = **--it;
+					break;
+				}
+				else
+				{
+					h1 = **it;
+					p1 = **--it;
+					break;
+				}
+
+			}
+		}
+		float sampleT = (t - p0.x) / (p1.x - p0.x);
+
+		float val = egpfwCubicHermite(p0.y, h0.y, p1.y, h1.y, sampleT);
+		if (val < 0) val = 0;
+		else if (val > 1) val = 1;
+
+		return val;
 }
 
 // Add the keyframes (0, 0) and (1, 0)
@@ -294,6 +376,10 @@ cbmath::mat4 KeyframeEditor::updateModelMatrix(const float& t) const
 		return makeRotateTranslate(
 			cbmath::makeRotationEuler3XYZ(getValCatmullRom(X_ROT, t), getValCatmullRom(Y_ROT, t), getValCatmullRom(Z_ROT, t)),
 			cbmath::vec3(getValCatmullRom(X_POS, t), getValCatmullRom(Y_POS, t), getValCatmullRom(Z_POS, t)));
+	case CUBIC_HERMITE:
+		return makeRotateTranslate(
+			cbmath::makeRotationEuler3XYZ(getValCubicHermite(X_ROT, t), getValCubicHermite(Y_ROT, t), getValCubicHermite(Z_ROT, t)),
+			cbmath::vec3(getValCubicHermite(X_POS, t), getValCubicHermite(Y_POS, t), getValCubicHermite(Z_POS, t)));
 	default:
 		return cbmath::mat4();
 	}

@@ -47,7 +47,7 @@ void TCurve::reset()
 	mPoints.push_back(cbmath::vec2(1.0f, 1.0f));
 }
 
-float TCurve::lineStripDeltaT(float t)
+float TCurve::lineStripDeltaT(const float t)
 {
 	cbmath::vec2 p0, p1;
 
@@ -73,7 +73,7 @@ float TCurve::lineStripDeltaT(float t)
 }
 
 //Credits to Charlie McGarey for letting me use this code (prettmy much the same as in KeyframeEditor)
-float TCurve::bezierDeltaT(float t)
+float TCurve::bezierDeltaT(const float t)
 {
 	int i = mPoints.size();
 	cbmath::vec2* vals = new cbmath::vec2[i];
@@ -104,7 +104,7 @@ float TCurve::bezierDeltaT(float t)
 	return val;
 }
 
-float TCurve::catmulRomDeltaT(float t)
+float TCurve::catmulRomDeltaT(const float t)
 {
 	//Can't really work with less than 3 points. 
 	//pPrev and pNext are assumptions at t == 0 and t == 1 respectively
@@ -169,7 +169,7 @@ float TCurve::catmulRomDeltaT(float t)
 	return val;
 }
 
-float TCurve::cubicHermiteDeltaT(float t)
+float TCurve::cubicHermiteDeltaT(const float t)
 {
 	//Need 4 points to work
 	if (getSize() < 4) return lineStripDeltaT(t);
@@ -265,7 +265,7 @@ void TCurve::getData(float* data)
 	}
 }
 
-float TCurve::getDeltaT(float t)
+float TCurve::getDeltaT(const float t)
 {
 	if (mType == LINE_STRIP)
 		return lineStripDeltaT(t);

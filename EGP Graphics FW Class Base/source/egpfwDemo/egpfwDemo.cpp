@@ -1023,8 +1023,8 @@ void handleInputState()
 
 		if (egpKeyboardIsKeyPressed(keybd, 'h'))
 		{
-			printf("Cubic Hermite Not yet implemented for keyframes\n");
-			//kEdit.switchCurveType(BEZIER);
+			printf("switching keyframes to Cubic Hermite\n");
+			kEdit.switchCurveType(CUBIC_HERMITE);
 		}
 	}
 
