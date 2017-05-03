@@ -897,7 +897,7 @@ void displayControls()
 	printf("\n Left Click = place a position keyframe");
 	printf("\n x, y, z = toggle between editing x, y, or z values");
 
-	printf("\n c, i, b = switch betwen (c)atmull-Rom, (b)ezier, or l(i)ne strip modes");
+	printf("\n c, i, b, h = switch betwen (c)atmull-Rom, (b)ezier, l(i)ne strip, or cubic (h)ermite modes");
 	printf("\n 1 = switch to keyframe editor");
 	printf("\n 2 = switch to object viewer");
 	printf("\n r = reset all keyframes");
@@ -1020,6 +1020,12 @@ void handleInputState()
 			printf("switching keyframes to Bezier\n");
 			kEdit.switchCurveType(BEZIER);
 		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'h'))
+		{
+			printf("Cubic Hermite Not yet implemented for keyframes\n");
+			//kEdit.switchCurveType(BEZIER);
+		}
 	}
 
 	if (viewType == T_CURVE)
@@ -1050,6 +1056,12 @@ void handleInputState()
 		{
 			printf("switching t curve to Bezier\n");
 			tCurve.setCurveType(BEZIER);
+		}
+
+		if (egpKeyboardIsKeyPressed(keybd, 'h'))
+		{
+			printf("switching t curve to Cubic Hermite\n");
+			tCurve.setCurveType(CUBIC_HERMITE);
 		}
 	}
 

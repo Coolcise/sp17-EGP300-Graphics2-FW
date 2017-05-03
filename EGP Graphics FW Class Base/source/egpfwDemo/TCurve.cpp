@@ -66,10 +66,10 @@ float TCurve::lineStripDeltaT(float t)
 	}
 
 	//Normalized sample time
-	float normSampleT = (t - p0.x) / (p1.x - p0.x);
+	float sampleT = (t - p0.x) / (p1.x - p0.x);
 
 	//lerp between the two points using the normalized sample time
-	return egpfwLerp(p0.y, p1.y, normSampleT);
+	return egpfwLerp(p0.y, p1.y, sampleT);
 }
 
 //Credits to Charlie McGarey for letting me use this code (prettmy much the same as in KeyframeEditor)
@@ -106,6 +106,8 @@ float TCurve::bezierDeltaT(float t)
 
 float TCurve::catmulRomDeltaT(float t)
 {
+	//Can't really work with less than 3 points. 
+	//pPrev and pNext are assumptions at t == 0 and t == 1 respectively
 	if (getSize() < 3) return lineStripDeltaT(t);
 
 	int i = 0;
@@ -169,7 +171,86 @@ float TCurve::catmulRomDeltaT(float t)
 
 float TCurve::cubicHermiteDeltaT(float t)
 {
-	return t;
+	//Need 4 points to work
+	if (getSize() < 4) return lineStripDeltaT(t);
+
+	cbmath::vec2 p0, h0, p1, h1;
+
+	//Find beginning and end points
+	for (auto it = mPoints.begin(); it != mPoints.end(); ++it)
+	{
+		//it t == 0 (with a margin of float errors)
+		if(t < 0.001)
+		{
+			p0 = *it;
+			h0 = *++it;
+			p1 = *++it;
+			h1 = *++it;
+			break;
+		}
+
+		//t==1 or it is the last point
+		if(t > 0.999 || *it == mPoints.back())
+		{
+			p1 = mPoints.back();
+			
+			//Get the last iterator to be able to manipulate it
+			it = mPoints.end();
+			--it;
+
+			//Second to last point is used as handles for both points
+			h0 = h1 = *--it;
+
+			p0 = *--it;
+			break;
+		}
+
+
+		if(t < (*it).x)
+		{
+			//Check if next to last. If so make it a handle
+			++it;
+
+			if(*it == mPoints.back())
+			{
+				//same as t == 1
+				p1 = *it;
+				h0 = h1 = *--it;
+				p0 = *--it;
+				break;
+			}
+			
+			//revert after checking the above
+			--it;
+
+			p0 = *it;
+			h0 = *++it;
+
+			//Checking if next is last point
+			++it;
+
+			if(*it == mPoints.back())
+			{
+				p1 = *it;
+				h1 = *--it;
+				break;
+			}
+			else
+			{
+				h1 = *it;
+				p1 = *--it;
+				break;
+			}
+
+		}
+	}
+	float sampleT = (t - p0.x) / (p1.x - p0.x);
+
+	float val = egpfwCatmullRom(p0.y, h0.y, p1.y, h1.y, sampleT);
+	if (val < 0) val = 0;
+	else if (val > 1) val = 1;
+
+	return val;
 }
 
 void TCurve::getData(float* data)
