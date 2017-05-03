@@ -796,23 +796,27 @@ void updateCameraControlled(float dt, unsigned int controlCamera, unsigned int c
 	// 1. compute deltas (velocities)
 	// 2. integrate!
 	// 3. update view matrix (camera's transformation)
-	if (egpMouseIsButtonDown(mouse, 0))
+	if (viewType == OBJECT)
 	{
-		cameraElevation -= (float)egpMouseDeltaY(mouse) * dt * cameraRotateSpeed;
-		cameraAzimuth -= (float)egpMouseDeltaX(mouse) * dt * cameraRotateSpeed;
+
+		if (egpMouseIsButtonDown(mouse, 0))
+		{
+			cameraElevation -= (float)egpMouseDeltaY(mouse) * dt * cameraRotateSpeed;
+			cameraAzimuth -= (float)egpMouseDeltaX(mouse) * dt * cameraRotateSpeed;
+		}
+
+		modelMatrix[controlCamera] = cbtk::cbmath::makeRotationEuler4ZYX(cameraElevation, cameraAzimuth, 0.0f);
+
+		// apply current rotation to our movement vector so that "forward" is the direction the camera is facing
+		deltaCamPos.set(
+			(float)egpKeyboardDifference(keybd, 'd', 'a'),
+			(float)egpKeyboardDifference(keybd, 'e', 'q'),
+			(float)egpKeyboardDifference(keybd, 's', 'w'),
+			0.0f);
+		deltaCamPos = modelMatrix[controlCamera] * deltaCamPos;
+
+		cameraPos_world[controlCameraIndex] += cbtk::cbmath::normalize(deltaCamPos) * dt * cameraMoveSpeed;
 	}
-
-	modelMatrix[controlCamera] = cbtk::cbmath::makeRotationEuler4ZYX(cameraElevation, cameraAzimuth, 0.0f);
-
-	// apply current rotation to our movement vector so that "forward" is the direction the camera is facing
-	deltaCamPos.set(
-		(float)egpKeyboardDifference(keybd, 'd', 'a'),
-		(float)egpKeyboardDifference(keybd, 'e', 'q'),
-		(float)egpKeyboardDifference(keybd, 's', 'w'),
-		0.0f);
-	deltaCamPos = modelMatrix[controlCamera] * deltaCamPos;
-
-	cameraPos_world[controlCameraIndex] += cbtk::cbmath::normalize(deltaCamPos) * dt * cameraMoveSpeed;
 }
 
 void updateCameraOrbit(float dt, unsigned int controlCamera, unsigned int controlCameraIndex)
@@ -927,31 +931,14 @@ void handleInputState()
 		setupShaders();
 	}
 
-	// toggle axes
-	if (egpKeyboardIsKeyPressed(keybd, 'x'))
-	{
-		currType = X;
-		printf("Now Editing X values\n");
-	}
 
-	if (egpKeyboardIsKeyPressed(keybd, 'y'))
-	{
-		currType = Y;
-		printf("Now Editing Y values\n");
-	}
-
-	if (egpKeyboardIsKeyPressed(keybd, 'z'))
-	{
-		currType = Z;
-		printf("Now Editing Z values\n");
-	}
 
 	if (egpKeyboardIsKeyPressed(keybd, 'm'))
 	{
 		drawConsoleSphere();
 	}
 
-	
+
 
 	// Switching between the different editors
 	if (egpKeyboardIsKeyPressed(keybd, '1'))
@@ -972,21 +959,42 @@ void handleInputState()
 
 	if (viewType == KEYFRAME || viewType == OBJECT)
 	{
+		if (viewType == KEYFRAME)
+		{
+			// Add keyframes on mouse press
+			if (egpMouseIsButtonPressed(mouse, 0))
+			{
+				kEdit.addKeyframe(
+					static_cast<float>(egpMouseX(mouse)),
+					static_cast<float>(egpMouseY(mouse)),
+					static_cast<KeyType>(currType));
+			}
+			else if (egpMouseIsButtonPressed(mouse, 2))
+			{
+				kEdit.addKeyframe(
+					static_cast<float>(egpMouseX(mouse)),
+					static_cast<float>(egpMouseY(mouse)),
+					static_cast<KeyType>(3 + currType));
+			}
 
-		// Add keyframes on mouse press
-		if (egpMouseIsButtonPressed(mouse, 0))
-		{
-			kEdit.addKeyframe(
-				static_cast<float>(egpMouseX(mouse)),
-				static_cast<float>(egpMouseY(mouse)),
-				static_cast<KeyType>(currType));
-		}
-		else if (egpMouseIsButtonPressed(mouse, 2))
-		{
-			kEdit.addKeyframe(
-				static_cast<float>(egpMouseX(mouse)),
-				static_cast<float>(egpMouseY(mouse)),
-				static_cast<KeyType>(3 + currType));
+			// toggle axes
+			if (egpKeyboardIsKeyPressed(keybd, 'x'))
+			{
+				currType = X;
+				printf("Now Editing X values\n");
+			}
+
+			if (egpKeyboardIsKeyPressed(keybd, 'y'))
+			{
+				currType = Y;
+				printf("Now Editing Y values\n");
+			}
+
+			if (egpKeyboardIsKeyPressed(keybd, 'z'))
+			{
+				currType = Z;
+				printf("Now Editing Z values\n");
+			}
 		}
 
 		// Reset the keyframes
@@ -1045,7 +1053,7 @@ void handleInputState()
 		}
 	}
 
-	
+
 
 	// finish by updating input state
 	egpMouseUpdate(mouse);

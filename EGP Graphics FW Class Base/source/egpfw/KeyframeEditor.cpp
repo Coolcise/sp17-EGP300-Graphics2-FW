@@ -179,6 +179,7 @@ float KeyframeEditor::getValCatmullRom(KeyType key, const float& t) const
 	}
 
 	float val = egpfwCatmullRom(pPrev->y, p0->y, p1->y, pNext->y, (t - p0->x) / (p1->x - p0->x));
+	printf("%f\n", val);
 	if (deleteNext) delete pNext;
 	if (deletePrev) delete pPrev;
 	return val;

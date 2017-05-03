@@ -29,7 +29,6 @@
     <ClInclude Include="..\..\..\include\egpfw\egpfw\egpfwVertexBuffer.h" />
     <ClInclude Include="..\..\..\include\KeyframeEditor.h" />
     <ClInclude Include="..\..\..\source\egpfwDemo\TCurve.h" />
-    <ClInclude Include="..\..\..\source\egpfw\Interpolation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egpfw\egpfwFrameBuffer.c" />
@@ -39,7 +38,6 @@
     <ClCompile Include="..\..\..\source\egpfw\egpfwPrimitiveDataSimple.c" />
     <ClCompile Include="..\..\..\source\egpfw\egpfwShaderProgram.c" />
     <ClCompile Include="..\..\..\source\egpfw\egpfwVertexBuffer.c" />
-    <ClCompile Include="..\..\..\source\egpfw\Interpolation.cpp" />
     <ClCompile Include="..\..\..\source\egpfw\KeyframeEditor.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

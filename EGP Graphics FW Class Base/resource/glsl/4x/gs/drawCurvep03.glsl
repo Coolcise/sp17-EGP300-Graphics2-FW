@@ -13,6 +13,7 @@
 #define LINE_STRIP 0
 #define BEZIER 1
 #define CATMULL_ROM 2
+#define CUBIC_HERMITE 3
 
 layout(points) in;
 layout(line_strip, max_vertices = VERTICES_MAX) out;
@@ -103,7 +104,7 @@ vec4 sampleCubicHermite(in vec4 p0, in vec4 m0, in vec4 p1, in vec4 m1, const fl
 
 	vec4 time = vec4(1, t, t*t, t*t*t);
 
-	return (0.5f * inVecs * kernel * time);
+	return (inVecs * kernel * time);
 }
 
 void drawCatmullRomSplineSegment(in vec4 pPrev, in vec4 p0, in vec4 p1, in vec4 pNext, const int samples, const float dt)
@@ -190,6 +191,11 @@ void drawCubicHermiteSplineSegment(in vec4 p0, in vec4 m0, in vec4 p1, in vec4 m
 	EndPrimitive();
 }
 
+void drawCubicHermiteCurve(const int samples, const float dt)
+{
+	drawLineFull(waypoint[0], waypoint[waypointCount -1]);
+}
+
 void main()
 {
 	passColor = color;
@@ -205,6 +211,9 @@ void main()
 			break;
 		case CATMULL_ROM:
 			drawCatmullRomCurve(samples, dt);
+			break;
+		case CUBIC_HERMITE:
+			drawCubicHermiteCurve(samples, dt);
 			break;
 		default:
 			break;

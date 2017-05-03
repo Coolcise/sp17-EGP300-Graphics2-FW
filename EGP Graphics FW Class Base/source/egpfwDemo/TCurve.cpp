@@ -1,7 +1,6 @@
 ﻿#include "TCurve.h"
 #include <iostream>
 #include "egpfw/egpfw.h"
-#include "Interpolation.h"
 
 
 TCurve::TCurve(int windowWidth, int windowHeight)
@@ -16,7 +15,7 @@ TCurve::TCurve(int windowWidth, int windowHeight)
 
 void TCurve::addPoint(cbmath::vec2 point)
 {
-	if (getSize() > TIME_POINTS_MAX) 
+	if (getSize() > TIME_POINTS_MAX)
 	{
 		std::cout << "Max time keys reached.\n";
 		return;
@@ -25,15 +24,15 @@ void TCurve::addPoint(cbmath::vec2 point)
 	float val = point.y / mWindowHeight;
 
 
-	for(auto it = mPoints.begin(); it != mPoints.end(); ++it)
+	for (auto it = mPoints.begin(); it != mPoints.end(); ++it)
 	{
-		if (t == (*it).x) 
+		if (t == (*it).x)
 		{
-			*it = cbmath::vec2(t,1 - val);
+			*it = cbmath::vec2(t, 1 - val);
 			break;
-		}	
+		}
 
-		if(t < (*it).x)
+		if (t < (*it).x)
 		{
 			mPoints.insert(it, cbmath::vec2(t, 1 - val));
 			break;
@@ -78,10 +77,10 @@ float TCurve::bezierDeltaT(float t)
 {
 	int i = mPoints.size();
 	cbmath::vec2* vals = new cbmath::vec2[i];
-	
+
 	// Fill the array
 	int j = 0;
-	for(auto it = mPoints.begin(); it != mPoints.end(); ++it)
+	for (auto it = mPoints.begin(); it != mPoints.end(); ++it)
 	{
 		vals[j].x = (*it).x;
 		vals[j].y = (*it).y;
@@ -94,7 +93,7 @@ float TCurve::bezierDeltaT(float t)
 		for (j = 0; j < i - 1; j++)
 		{
 			// vals is filled with previous values, replace the first one with the lerped value
-			vals[j] = Interpolation::lerp(vals[j], vals[j + 1], t);
+			vals[j].y = egpfwLerp(vals[j].y, vals[j + 1].y, t);
 			// After each lerp pass there will be one less value to go through, until we eventually reach only one val
 		}
 	}
@@ -107,7 +106,7 @@ float TCurve::bezierDeltaT(float t)
 
 float TCurve::catmulRomDeltaT(float t)
 {
-	if (getSize() < 4) return lineStripDeltaT(t);
+	if (getSize() < 3) return lineStripDeltaT(t);
 
 	int i = 0;
 
@@ -116,7 +115,9 @@ float TCurve::catmulRomDeltaT(float t)
 	//Find beginning and end points
 	for (auto it = mPoints.begin(); it != mPoints.end(); ++it)
 	{
+		//Add to it for the first check
 		++it;
+
 		//if t == 0 or the t at 0 is p1
 		if (t < 0.001f || (i == 0 && t < (*it).x))
 		{
@@ -125,20 +126,23 @@ float TCurve::catmulRomDeltaT(float t)
 			//as there is no actual point before 0.0, I assume it is the same y as p2, and as far away in the negative direction
 			p0 = cbmath::vec2(p1.x - p2.x, p2.y);
 			p3 = *(++it);
-			break;
+			break; 
 		}
-
+		//Go back to counteract the first check iteration
 		--it;
-		if(t < (*it).x)
+
+		if (t < (*it).x)
 		{
 			p2 = *it;
-			
-			if(i < getSize() - 2)
+
+			if (*it != mPoints.back())
 			{
 				p3 = *(++it);
 				--it; //p2
 				p1 = *(--it);
 				p0 = *(--it);
+
+				break;
 			}
 			else
 			{
@@ -152,8 +156,11 @@ float TCurve::catmulRomDeltaT(float t)
 		i++;
 	}
 
+	//get sample time
+	float sampleT = (t - p1.x) / (p2.x - p1.x);
+
 	//clamp and return interpolated y value
-	float val = Interpolation::catmullRom(p0, p1, p2, p3, t).y;
+	float val = egpfwCatmullRom(p0.y, p1.y, p2.y, p3.y, sampleT);
 	if (val < 0) val = 0;
 	else if (val > 1) val = 1;
 
@@ -168,7 +175,7 @@ float TCurve::cubicHermiteDeltaT(float t)
 void TCurve::getData(float* data)
 {
 	int i = 0;
-	for(auto it = mPoints.begin(); it != mPoints.end(); ++it)
+	for (auto it = mPoints.begin(); it != mPoints.end(); ++it)
 	{
 		data[i] = (*it).x * mWindowWidth; i++;
 		data[i] = (*it).y * mWindowHeight; i++;
@@ -179,7 +186,7 @@ void TCurve::getData(float* data)
 
 float TCurve::getDeltaT(float t)
 {
-	if(mType == LINE_STRIP)
+	if (mType == LINE_STRIP)
 		return lineStripDeltaT(t);
 	else if (mType == BEZIER)
 		return bezierDeltaT(t);
